@@ -3,30 +3,122 @@ Turn-based arcade fighting game inspired by the Marvel universe, developed in Ja
 
 ## Overview
 
-**Avengers: Disassemble** is a **turn-based arcade battle game** inspired by the Marvel universe. The game focuses on strategic combat where players choose abilities and manage resources instead of relying on fast button inputs.
+**Avengers: Disassemble** is a **turn-based arcade battle game** developed in **Java** as a school project.
+The project focuses on implementing **Object-Oriented Programming (OOP)** concepts and building a simple strategic combat system where characters use abilities, manage mana, and fight in a turn-based arena.
 
-This project was developed as a **school project** to demonstrate programming concepts such as object-oriented design, game logic, and turn-based battle mechanics using Java.
-
-Players select characters from a roster of Marvel heroes and villains and battle inside a controlled arena where strategy, ability management, and decision-making determine the winner.
+The repository is organized to separate **game logic, characters, abilities, AI behavior, and battle systems** to make development easier for the team.
 
 ---
 
-## Story
+## Technology Stack
 
-After a strange surge of multiversal energy is detected, several powerful heroes suddenly find themselves transported into a mysterious combat arena.
+**Programming Language**
 
-The arena was secretly created by **Loki** and **Ultron**.
+* Java
 
-Loki uses his illusion magic to trap powerful heroes inside the arena for his own amusement, turning their battles into a twisted game. At the same time, Ultron controls the arena’s advanced technology and upgrades it with systems capable of analyzing and replicating every fighter.
+**Development Environment**
 
-Using stolen combat data and advanced cloning technology, Ultron creates **perfect clones** of each hero. These clones have the same strength, abilities, and combat skills as the originals, but they lack emotion and act only according to Ultron’s commands.
+* IntelliJ IDEA Community Edition
 
-The arena divides the fighters into two opposing teams:
+**Java Version**
 
-**Blue Team** – The original heroes attempting to escape the arena.
-**Red Team** – The cloned fighters created and controlled by Ultron.
+* Java JDK 17 or newer
 
-Even if both players select the same character, the Blue Team represents the **original hero**, while the Red Team represents the **clone**.
+**Version Control**
+
+* Git
+* GitHub
+
+---
+
+## Project Structure
+
+The repository is organized to keep the code modular and easy to maintain.
+
+```
+Avengers-Disassemble/
+│
+├── src/
+│   ├── characters/        # Character classes (heroes and villains)
+│   ├── abilities/         # Character skills and ability logic
+│   ├── battle/            # Battle mechanics and damage calculations
+│   ├── ai/                # AI logic for computer-controlled players
+│   └── game/              # Game engine and main game controller
+│
+├── assets/
+│   ├── sprites/           # Character images or sprites
+│   ├── sounds/            # Sound effects and audio
+│   └── ui/                # UI assets
+│
+├── docs/                  # Documentation and design notes
+│
+├── README.md              # Project documentation
+└── .gitignore             # Ignored files for Java/IntelliJ
+```
+
+---
+
+## Development Setup
+
+### 1. Install Java
+
+Install **Java JDK 17 or newer**.
+
+### 2. Install IDE
+
+Install **IntelliJ IDEA Community Edition**.
+
+### 3. Clone the Repository
+
+```
+git clone https://github.com/your-username/Avengers-Disassemble.git
+```
+
+### 4. Open in IntelliJ
+
+1. Open IntelliJ IDEA
+2. Select **Open Project**
+3. Choose the cloned repository folder
+
+### 5. Run the Game
+
+Run the main program file located in:
+
+```
+src/game/MainGame.java
+```
+
+---
+
+## Development Guidelines
+
+* Follow the **existing folder structure** when adding new files.
+* Place new characters inside the **characters** folder.
+* Add new abilities inside the **abilities** folder.
+* Keep battle logic inside the **battle** folder.
+* AI behavior should go inside the **ai** folder.
+
+This helps keep the project organized and easier to maintain for the whole team.
+
+---
+
+## Team
+
+**Fantastic 4**
+
+Members:
+
+* Brylle Harvey C. Embodo
+* Vince Raymund J. Alerta
+* Ma. Ivanna P. Tubiano
+* Lucy Kate C. Patagnan
+
+---
+
+## Project Type
+
+School Project – **Turn-Based Arcade Game**
+
 
 To escape the arena, the heroes must defeat their clones, survive multiple battles, destroy Ultron’s cloning system, and ultimately confront Loki, the mastermind behind the trap.
 
@@ -95,6 +187,83 @@ The game demonstrates:
 ---
 
 ## Development Tools
+
+### IDE
+
+Recommended IDE:
+
+**IntelliJ IDEA Community Edition**
+
+Alternative IDE:
+
+**Apache NetBeans**
+
+### Java Version
+
+Java **JDK 17 or newer**
+
+---
+
+## Project Structure
+
+```
+Avengers-Disassemble/
+│
+├── src/
+│   ├── characters/
+│   ├── abilities/
+│   ├── battle/
+│   ├── ai/
+│   └── game/
+│
+├── assets/
+│   ├── sprites/
+│   ├── sounds/
+│   └── ui/
+│
+├── docs/
+│
+└── README.md
+```
+
+---
+
+## Installation
+
+1. Install **Java JDK 17**
+2. Install **IntelliJ IDEA Community Edition**
+3. Clone the repository
+
+```
+git clone https://github.com/your-username/Avengers-Disassemble.git
+```
+
+4. Open the project in IntelliJ
+5. Run the main game file to start the program
+
+---
+
+## Team
+
+**Fantastic 4**
+
+Members:
+
+* Brylle Harvey C. Embodo
+* Vince Raymund J. Alerta
+* Ma. Ivanna P. Tubiano
+* Lucy Kate C. Patagnan
+
+---
+
+## Project Type
+
+**School Project – Turn-Based Arcade Game**
+
+This project demonstrates how Java programming and object-oriented design can be used to build a simple strategic battle game.
+
+ 
+
 
 ### IDE
 
