@@ -3,28 +3,35 @@ Turn-based arcade fighting game inspired by the Marvel universe, developed in Ja
 
 ## Overview
 
-*Avengers: Disassemble* is a *turn-based arcade battle game* developed in *Java* as a school project.
-The project focuses on implementing *Object-Oriented Programming (OOP)* concepts and building a simple strategic combat system where characters use abilities, manage mana, and fight in a turn-based arena.
+**Avengers: Disassemble** is a **turn-based arcade battle game** developed in **Java** as a school project.
+The project focuses on implementing **Object-Oriented Programming (OOP)** concepts and building a strategic combat system where characters use abilities, manage mana, and fight in a turn-based arena.
 
-The repository is organized to separate *game logic, characters, abilities, AI behavior, and battle systems* to make development easier for the team.
+The game interface will be developed using **Java Swing GUI with JForm (GUI Builder)** to create the visual components such as menus, battle screens, and character selection.
+
+The repository is organized to separate **game logic, characters, abilities, AI behavior, and battle systems** to make development easier for the team.
 
 ---
 
 ## Technology Stack
 
-*Programming Language*
+**Programming Language**
 
 * Java
 
-*Development Environment*
+**User Interface**
+
+* Java Swing
+* JForm (GUI Builder)
+
+**Development Environment**
 
 * IntelliJ IDEA Community Edition
 
-*Java Version*
+**Java Version**
 
 * Java JDK 17 or newer
 
-*Version Control*
+**Version Control**
 
 * Git
 * GitHub
@@ -35,6 +42,7 @@ The repository is organized to separate *game logic, characters, abilities, AI b
 
 The repository is organized to keep the code modular and easy to maintain.
 
+```
 Avengers-Disassemble/
 │
 ├── src/
@@ -44,15 +52,22 @@ Avengers-Disassemble/
 │   ├── ai/                # AI logic for computer-controlled players
 │   └── game/              # Game engine and main game controller
 │
+├── gui/
+│   ├── MainMenuForm.java
+│   ├── BattleForm.java
+│   ├── CharacterSelectForm.java
+│   └── GameOverForm.java
+│
 ├── assets/
 │   ├── sprites/           # Character images or sprites
-│   ├── sounds/            # Sound effects and audio
-│   └── ui/                # UI assets
+│   ├── sounds/            # Sound effects
+│   └── ui/                # UI images and elements
 │
 ├── docs/                  # Documentation and design notes
 │
 ├── README.md              # Project documentation
 └── .gitignore             # Ignored files for Java/IntelliJ
+```
 
 ---
 
@@ -60,37 +75,42 @@ Avengers-Disassemble/
 
 ### 1. Install Java
 
-Install *Java JDK 17 or newer*.
+Install **Java JDK 17 or newer**.
 
 ### 2. Install IDE
 
-Install *IntelliJ IDEA Community Edition*.
+Install **IntelliJ IDEA Community Edition**.
 
 ### 3. Clone the Repository
 
+```
 git clone https://github.com/your-username/Avengers-Disassemble.git
+```
 
 ### 4. Open in IntelliJ
 
 1. Open IntelliJ IDEA
-2. Select *Open Project*
+2. Select **Open Project**
 3. Choose the cloned repository folder
 
 ### 5. Run the Game
 
 Run the main program file located in:
 
+```
 src/game/MainGame.java
+```
 
 ---
 
 ## Development Guidelines
 
-* Follow the *existing folder structure* when adding new files.
-* Place new characters inside the *characters* folder.
-* Add new abilities inside the *abilities* folder.
-* Keep battle logic inside the *battle* folder.
-* AI behavior should go inside the *ai* folder.
+* Follow the **existing folder structure** when adding new files.
+* Place new characters inside the **characters** folder.
+* Add new abilities inside the **abilities** folder.
+* Keep battle logic inside the **battle** folder.
+* Place GUI forms inside the **gui** folder.
+* AI behavior should go inside the **ai** folder.
 
 This helps keep the project organized and easier to maintain for the whole team.
 
@@ -98,7 +118,7 @@ This helps keep the project organized and easier to maintain for the whole team.
 
 ## Team
 
-*Fantastic 4*
+**Fantastic 4**
 
 Members:
 
@@ -111,7 +131,11 @@ Members:
 
 ## Project Type
 
-School Project – *Turn-Based Arcade Game*
+School Project – **Turn-Based Arcade Game**
+
+
+
+
 
 
 
