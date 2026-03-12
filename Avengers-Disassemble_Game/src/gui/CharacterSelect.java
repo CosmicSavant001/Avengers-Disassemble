@@ -13,25 +13,28 @@ import java.util.List;
 
 /**
  * Character selection screen.
- * Shows all 5 heroes with their stats and description.
- * Player clicks a hero card to select it, then clicks "GO!" to start the battle.
+ * - PvAI:  Player 1 picks one hero → goes to battle vs AI
+ * - PvP:   Player 1 picks, then Player 2 picks → both go to battle
+ * - AIvAI: Auto-picks two random heroes → goes straight to battle
  */
 public class CharacterSelect extends JFrame {
 
-    private static final Color BG_COLOR     = new Color(10, 10, 30);
-    private static final Color ACCENT       = new Color(200, 30, 30);
-    private static final Color TEXT_COLOR   = new Color(220, 220, 255);
-    private static final Color CARD_BG      = new Color(20, 20, 60);
-    private static final Color SELECTED_BG  = new Color(50, 10, 10);
-    private static final Color SELECTED_BDR = new Color(255, 200, 0);
+    private static final Color BG_COLOR    = new Color(10, 10, 30);
+    private static final Color ACCENT      = new Color(200, 30, 30);
+    private static final Color TEXT_COLOR  = new Color(220, 220, 255);
+    private static final Color CARD_BG     = new Color(20, 20, 60);
+    private static final Color SEL_BG      = new Color(50, 10, 10);
+    private static final Color SEL_BORDER  = new Color(255, 200, 0);
 
-    private final JFrame       parentFrame;
-    private final Leaderboard  leaderboard;
+    private final JFrame      parentFrame;
+    private final Leaderboard leaderboard;
 
     private final List<Hero>   heroes    = new ArrayList<>();
     private Hero               selected  = null;
     private final List<JPanel> heroCards = new ArrayList<>();
 
+    private int    pickingForPlayer = 1; // 1 or 2
+    private JLabel titleLabel;
     private JLabel descLabel;
     private JLabel statsLabel;
     private JButton confirmBtn;
@@ -47,7 +50,13 @@ public class CharacterSelect extends JFrame {
         setResizable(false);
 
         buildHeroes();
-        buildUI();
+
+        // AI vs AI — skip selection entirely
+        if (GameState.getInstance().isAIvAI()) {
+            autoPickForAIvAI();
+        } else {
+            buildUI();
+        }
     }
 
     private void buildHeroes() {
@@ -58,18 +67,27 @@ public class CharacterSelect extends JFrame {
         heroes.add(new BlackWidow());
     }
 
+    // ── AI vs AI: auto-pick two different heroes ────────────────────────
+    private void autoPickForAIvAI() {
+        GameState.getInstance().setSelectedHero(heroes.get(0));  // Iron Man
+        GameState.getInstance().setSelectedHero2(heroes.get(2)); // Thor
+        openBattleScreen();
+    }
+
+    // ─── UI ──────────────────────────────────────────────────────────────
+
     private void buildUI() {
         JPanel root = new JPanel(new BorderLayout(10, 10));
         root.setBackground(BG_COLOR);
         root.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // ── Title ──
-        JLabel title = new JLabel("SELECT YOUR HERO", SwingConstants.CENTER);
-        title.setFont(new Font("Impact", Font.BOLD, 36));
-        title.setForeground(ACCENT);
-        root.add(title, BorderLayout.NORTH);
+        // Title changes based on mode & turn
+        titleLabel = new JLabel(getPickTitle(), SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Impact", Font.BOLD, 30));
+        titleLabel.setForeground(ACCENT);
+        root.add(titleLabel, BorderLayout.NORTH);
 
-        // ── Hero Cards Row ──
+        // Hero cards
         JPanel cardsPanel = new JPanel(new GridLayout(1, 5, 12, 0));
         cardsPanel.setBackground(BG_COLOR);
         for (Hero h : heroes) {
@@ -79,7 +97,7 @@ public class CharacterSelect extends JFrame {
         }
         root.add(cardsPanel, BorderLayout.CENTER);
 
-        // ── Info + Confirm Panel ──
+        // Bottom info + confirm
         JPanel infoRow = new JPanel(new BorderLayout(20, 0));
         infoRow.setBackground(BG_COLOR);
 
@@ -87,41 +105,44 @@ public class CharacterSelect extends JFrame {
         descLabel.setForeground(TEXT_COLOR);
         descLabel.setFont(new Font("Arial", Font.PLAIN, 13));
         descLabel.setPreferredSize(new Dimension(500, 70));
-        infoRow.add(descLabel, BorderLayout.CENTER);
 
         statsLabel = new JLabel("", SwingConstants.RIGHT);
         statsLabel.setForeground(new Color(180, 220, 255));
         statsLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
+
+        infoRow.add(descLabel,  BorderLayout.CENTER);
         infoRow.add(statsLabel, BorderLayout.EAST);
 
-        confirmBtn = buildButton("⚔  FIGHT!", e -> handleConfirm());
+        confirmBtn = buildButton("⚔  CONFIRM", e -> handleConfirm());
         confirmBtn.setEnabled(false);
         confirmBtn.setFont(new Font("Impact", Font.BOLD, 20));
         confirmBtn.setPreferredSize(new Dimension(160, 50));
 
         JPanel bottomRow = new JPanel(new BorderLayout(10, 0));
         bottomRow.setBackground(BG_COLOR);
-        bottomRow.add(infoRow, BorderLayout.CENTER);
+        bottomRow.add(infoRow,    BorderLayout.CENTER);
         bottomRow.add(confirmBtn, BorderLayout.EAST);
 
         root.add(bottomRow, BorderLayout.SOUTH);
         add(root);
+        setVisible(true);
     }
+
+    // ─── Hero Card ────────────────────────────────────────────────────────
 
     private JPanel buildHeroCard(Hero hero) {
         JPanel card = new JPanel(new BorderLayout(4, 4));
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(60, 60, 100), 2),
-                new EmptyBorder(10, 8, 10, 8)
-        ));
+                new EmptyBorder(10, 8, 10, 8)));
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        // ── Portrait – pixel art image or colour fallback ──
+        // Portrait image or coloured fallback
         java.awt.image.BufferedImage heroImg = null;
         try {
-            java.io.File imgFile = new java.io.File(hero.getImagePath());
-            if (imgFile.exists()) heroImg = javax.imageio.ImageIO.read(imgFile);
+            java.io.File f = new java.io.File(hero.getImagePath());
+            if (f.exists()) heroImg = javax.imageio.ImageIO.read(f);
         } catch (Exception ignored) {}
         final java.awt.image.BufferedImage finalImg = heroImg;
         final Color hColor = heroColor(hero);
@@ -138,33 +159,29 @@ public class CharacterSelect extends JFrame {
                     g2.setColor(hColor);
                     g2.fillRect(0, 0, getWidth(), getHeight());
                     g2.setColor(Color.WHITE);
-                    g2.setFont(new Font("Arial", Font.BOLD, 11));
+                    g2.setFont(new Font("Impact", Font.PLAIN, 28));
                     FontMetrics fm = g2.getFontMetrics();
-                    String initials = getInitials(hero.getName());
-                    g2.drawString(initials,
-                            (getWidth() - fm.stringWidth(initials)) / 2,
-                            getHeight() / 2 + fm.getAscent() / 2);
+                    String ini = getInitials(hero.getName());
+                    g2.drawString(ini, (getWidth()-fm.stringWidth(ini))/2,
+                            getHeight()/2 + fm.getAscent()/3);
                 }
             }
         };
         portrait.setPreferredSize(new Dimension(110, 120));
         card.add(portrait, BorderLayout.CENTER);
 
-        // ── Name label ──
         JLabel nameLabel = new JLabel(hero.getName(), SwingConstants.CENTER);
         nameLabel.setForeground(TEXT_COLOR);
-        nameLabel.setFont(new Font("Impact", Font.PLAIN, 15));
+        nameLabel.setFont(new Font("Impact", Font.PLAIN, 14));
         card.add(nameLabel, BorderLayout.NORTH);
 
-        // ── Mini stat bar ──
         JPanel statBar = new JPanel(new GridLayout(3, 1, 2, 2));
         statBar.setBackground(CARD_BG);
-        statBar.add(miniStat("HP:  " + hero.getMaxHealth(), new Color(80, 200, 80)));
-        statBar.add(miniStat("ATK: " + hero.getAttackPower(), new Color(200, 80, 80)));
+        statBar.add(miniStat("HP:  " + hero.getMaxHealth(),    new Color(80, 200, 80)));
+        statBar.add(miniStat("ATK: " + hero.getAttackPower(),  new Color(200, 80, 80)));
         statBar.add(miniStat("DEF: " + hero.getDefensePower(), new Color(80, 80, 200)));
         card.add(statBar, BorderLayout.SOUTH);
 
-        // ── Click handler ──
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 selectHero(hero, card);
@@ -177,61 +194,91 @@ public class CharacterSelect extends JFrame {
                 if (selected != hero) card.setBackground(CARD_BG);
             }
         });
-
         return card;
     }
 
     private void selectHero(Hero hero, JPanel clickedCard) {
         selected = hero;
-
-        // Deselect all cards
         for (JPanel c : heroCards) {
             c.setBackground(CARD_BG);
             c.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(60, 60, 100), 2),
-                    new EmptyBorder(10, 8, 10, 8)
-            ));
+                    new EmptyBorder(10, 8, 10, 8)));
         }
-
-        // Highlight selected
-        clickedCard.setBackground(SELECTED_BG);
+        clickedCard.setBackground(SEL_BG);
         clickedCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(SELECTED_BDR, 3),
-                new EmptyBorder(10, 8, 10, 8)
-        ));
+                BorderFactory.createLineBorder(SEL_BORDER, 3),
+                new EmptyBorder(10, 8, 10, 8)));
 
         descLabel.setText("<html>" + hero.getDescription() + "</html>");
-
-        String abilityStatus = hero.getSpecialAbility() != null
-                ? hero.getSpecialAbility().getName() : "None";
+        String ab = hero.getSpecialAbility() != null ? hero.getSpecialAbility().getName() : "None";
         statsLabel.setText(String.format(
-                "<html><b>Health:</b> %d &nbsp; <b>Attack:</b> %d &nbsp; <b>Defense:</b> %d<br/>"
-                + "<b>Ability:</b> %s</html>",
-                hero.getMaxHealth(), hero.getAttackPower(), hero.getDefensePower(), abilityStatus
-        ));
-
+                "<html><b>HP:</b> %d &nbsp; <b>ATK:</b> %d &nbsp; <b>DEF:</b> %d<br/><b>Ability:</b> %s</html>",
+                hero.getMaxHealth(), hero.getAttackPower(), hero.getDefensePower(), ab));
         confirmBtn.setEnabled(true);
         revalidate(); repaint();
     }
 
+    // ─── Confirm / Navigation ─────────────────────────────────────────────
+
     private void handleConfirm() {
         if (selected == null) return;
         AudioManager.getInstance().playSFX(AudioManager.SFX_BUTTON_CLICK);
-        GameState.getInstance().setSelectedHero(selected);
+
+        if (pickingForPlayer == 1) {
+            GameState.getInstance().setSelectedHero(selected);
+
+            if (GameState.getInstance().isPvP()) {
+                // PvP: ask Player 2 to pick
+                pickingForPlayer = 2;
+                selected = null;
+                confirmBtn.setEnabled(false);
+                titleLabel.setText(getPickTitle());
+                // Deselect all cards visually
+                for (JPanel c : heroCards) {
+                    c.setBackground(CARD_BG);
+                    c.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(new Color(60, 60, 100), 2),
+                            new EmptyBorder(10, 8, 10, 8)));
+                }
+                descLabel.setText("<html><i>Player 2 — click a hero to learn more.</i></html>");
+                statsLabel.setText("");
+                revalidate(); repaint();
+            } else {
+                // PvAI: only one pick needed
+                openBattleScreen();
+            }
+
+        } else {
+            // Player 2 confirmed
+            GameState.getInstance().setSelectedHero2(selected);
+            openBattleScreen();
+        }
+    }
+
+    private void openBattleScreen() {
         SwingUtilities.invokeLater(() -> {
-            BattleScreen bs = new BattleScreen(this, leaderboard, selected);
+            BattleScreen bs = new BattleScreen(parentFrame, leaderboard);
             bs.setVisible(true);
-            setVisible(false);
+            dispose();
         });
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────
+    // ─── Helpers ─────────────────────────────────────────────────────────
+
+    private String getPickTitle() {
+        if (GameState.getInstance().isPvP()) {
+            return pickingForPlayer == 1
+                    ? "PLAYER 1 — CHOOSE YOUR HERO"
+                    : "PLAYER 2 — CHOOSE YOUR HERO";
+        }
+        return "SELECT YOUR HERO";
+    }
 
     private JLabel miniStat(String text, Color color) {
         JLabel lbl = new JLabel(text, SwingConstants.CENTER);
         lbl.setForeground(color);
         lbl.setFont(new Font("Monospaced", Font.BOLD, 11));
-        lbl.setOpaque(false);
         return lbl;
     }
 
@@ -242,9 +289,7 @@ public class CharacterSelect extends JFrame {
         btn.setFont(new Font("Arial", Font.BOLD, 14));
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ACCENT, 2),
-                new EmptyBorder(8, 14, 8, 14)
-        ));
+                BorderFactory.createLineBorder(ACCENT, 2), new EmptyBorder(8, 14, 8, 14)));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.addActionListener(l);
         return btn;
@@ -261,9 +306,7 @@ public class CharacterSelect extends JFrame {
 
     private String getInitials(String name) {
         StringBuilder sb = new StringBuilder();
-        for (String part : name.split(" ")) {
-            if (!part.isEmpty()) sb.append(part.charAt(0));
-        }
+        for (String p : name.split(" ")) if (!p.isEmpty()) sb.append(p.charAt(0));
         return sb.toString().toUpperCase();
     }
 }

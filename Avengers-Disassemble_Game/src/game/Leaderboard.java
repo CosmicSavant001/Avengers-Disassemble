@@ -5,18 +5,17 @@ import java.util.*;
 
 /**
  * Manages the persistent leaderboard.
- * Scores are stored in CSV format: username,score,heroName,date
- * Top 10 scores are displayed in the UI.
+ * Stores: heroName, score, mode, date
+ * No login required — scores are saved by hero name + mode.
  */
 public class Leaderboard {
 
-    private static final String DATA_DIR  = "data/";
+    private static final String DATA_DIR   = "data/";
     private static final String SCORE_FILE = DATA_DIR + "leaderboard.dat";
-    private static final int MAX_ENTRIES   = 10;
+    private static final int    MAX_ENTRIES = 10;
 
-    /** Represents a single leaderboard entry. */
     public static class Entry implements Comparable<Entry> {
-        private final String username;
+        private final String username; // kept as "heroName" for display
         private final int    score;
         private final String heroName;
         private final String date;
@@ -33,94 +32,54 @@ public class Leaderboard {
         public String getHeroName() { return heroName; }
         public String getDate()     { return date; }
 
-        @Override
-        public int compareTo(Entry other) {
-            return Integer.compare(other.score, this.score); // descending
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%-15s %-12s %6d  %s",
-                    username, heroName, score, date);
-        }
+        @Override public int compareTo(Entry o) { return Integer.compare(o.score, this.score); }
     }
 
-    private List<Entry> entries;
+    private List<Entry> entries = new ArrayList<>();
 
     public Leaderboard() {
-        entries = new ArrayList<>();
         ensureDataDirectory();
         load();
     }
 
-    // ─── Public API ──────────────────────────────────────────────────────────
-
-    /**
-     * Submits a new score. The leaderboard is sorted and trimmed to MAX_ENTRIES.
-     */
-    public void submitScore(String username, int score, String heroName) {
-        String date = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
-        entries.add(new Entry(username, score, heroName, date));
+    public void submitScore(String heroName, int score, String mode) {
+        String date = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        entries.add(new Entry(heroName, score, mode, date));
         Collections.sort(entries);
-        if (entries.size() > MAX_ENTRIES) {
-            entries = entries.subList(0, MAX_ENTRIES);
-        }
+        if (entries.size() > MAX_ENTRIES) entries = entries.subList(0, MAX_ENTRIES);
         save();
     }
 
-    /**
-     * Returns an immutable view of the top scores.
-     */
-    public List<Entry> getTopScores() {
-        return Collections.unmodifiableList(entries);
-    }
+    public List<Entry> getTopScores() { return Collections.unmodifiableList(entries); }
 
-    /**
-     * Returns the best score for a specific user, or 0 if none.
-     */
-    public int getBestScore(String username) {
+    public int getBestScore(String heroName) {
         return entries.stream()
-                .filter(e -> e.getUsername().equalsIgnoreCase(username))
-                .mapToInt(Entry::getScore)
-                .max()
-                .orElse(0);
+                .filter(e -> e.getUsername().equalsIgnoreCase(heroName))
+                .mapToInt(Entry::getScore).max().orElse(0);
     }
-
-    // ─── File I/O ─────────────────────────────────────────────────────────────
 
     private void load() {
-        File file = new File(SCORE_FILE);
-        if (!file.exists()) return;
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        File f = new File(SCORE_FILE);
+        if (!f.exists()) return;
+        try (BufferedReader r = new BufferedReader(new FileReader(f))) {
             String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",", 4);
-                if (parts.length == 4) {
-                    try {
-                        entries.add(new Entry(
-                                parts[0].trim(),
-                                Integer.parseInt(parts[1].trim()),
-                                parts[2].trim(),
-                                parts[3].trim()
-                        ));
+            while ((line = r.readLine()) != null) {
+                String[] p = line.split(",", 4);
+                if (p.length == 4) {
+                    try { entries.add(new Entry(p[0].trim(),
+                            Integer.parseInt(p[1].trim()), p[2].trim(), p[3].trim()));
                     } catch (NumberFormatException ignored) {}
                 }
             }
             Collections.sort(entries);
-        } catch (IOException e) {
-            System.err.println("Warning: Could not read leaderboard – " + e.getMessage());
-        }
+        } catch (IOException e) { System.err.println("Leaderboard load error: " + e.getMessage()); }
     }
 
     private void save() {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(SCORE_FILE))) {
-            for (Entry e : entries) {
-                writer.printf("%s,%d,%s,%s%n", e.getUsername(), e.getScore(), e.getHeroName(), e.getDate());
-            }
-        } catch (IOException e) {
-            System.err.println("Warning: Could not save leaderboard – " + e.getMessage());
-        }
+        try (PrintWriter w = new PrintWriter(new FileWriter(SCORE_FILE))) {
+            for (Entry e : entries)
+                w.printf("%s,%d,%s,%s%n", e.getUsername(), e.getScore(), e.getHeroName(), e.getDate());
+        } catch (IOException e) { System.err.println("Leaderboard save error: " + e.getMessage()); }
     }
 
     private void ensureDataDirectory() {

@@ -28,10 +28,10 @@ public class GameOverScreen extends JFrame {
     private final boolean    playerWon;
 
     public GameOverScreen(JFrame mainMenuRef, Leaderboard leaderboard,
-                          String username, String heroName, int score, boolean playerWon) {
+                          String heroName, int score, boolean playerWon) {
         this.mainMenuRef = mainMenuRef;
         this.leaderboard  = leaderboard;
-        this.username     = username;
+        this.username     = heroName; // use hero name as identifier
         this.heroName     = heroName;
         this.score        = score;
         this.playerWon    = playerWon;
@@ -44,7 +44,8 @@ public class GameOverScreen extends JFrame {
 
         // Save score to leaderboard
         if (score > 0) {
-            leaderboard.submitScore(username, score, heroName);
+            String modeStr = game.GameState.getInstance().getGameMode().toString();
+            leaderboard.submitScore(heroName, score, modeStr);
         }
 
         buildUI();

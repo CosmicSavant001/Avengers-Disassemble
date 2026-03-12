@@ -55,10 +55,10 @@ public class BattleScreen extends JFrame {
     private JLabel       scoreLabel;
     private JLabel       abilityStatusLabel;
 
-    public BattleScreen(JFrame parent, Leaderboard leaderboard, Hero hero) {
+    public BattleScreen(JFrame parent, Leaderboard leaderboard) {
         this.parentFrame = parent;
         this.leaderboard = leaderboard;
-        this.hero        = hero;
+        this.hero        = GameState.getInstance().getSelectedHero();
 
         setTitle("Avengers Disassemble – Battle");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -66,10 +66,24 @@ public class BattleScreen extends JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
 
-        startNewBattle(Enemy.createHydraAgent()); // Start with HYDRA Agent
+        // Choose opponent based on game mode
+        if (GameState.getInstance().isPvAI()) {
+            startNewBattle(Enemy.createHydraAgent());
+        } else {
+            // PvP or AIvAI: opponent is hero2 wrapped as a pseudo-enemy
+            startNewBattle(Enemy.createHydraAgent()); // placeholder, see BattleManager extension
+        }
+
         buildUI();
         updateUI();
         AudioManager.getInstance().playMusic(AudioManager.MUSIC_BATTLE);
+
+        // AI vs AI: auto-run turns with a timer
+        if (GameState.getInstance().isAIvAI()) {
+            setButtonsEnabled(false);
+            appendLog("[ AI vs AI Mode - watch the battle! ]\n");
+            runAIvsAI();
+        }
     }
 
     private void startNewBattle(Enemy enemy) {
@@ -161,8 +175,8 @@ public class BattleScreen extends JFrame {
 
         JLabel hpLabel = new JLabel(
                 isHero
-                    ? hero.getCurrentHealth() + " / " + hero.getMaxHealth()
-                    : currentEnemy.getCurrentHealth() + " / " + currentEnemy.getMaxHealth(),
+                        ? hero.getCurrentHealth() + " / " + hero.getMaxHealth()
+                        : currentEnemy.getCurrentHealth() + " / " + currentEnemy.getMaxHealth(),
                 SwingConstants.CENTER);
         hpLabel.setForeground(TEXT_COLOR);
         hpLabel.setFont(new Font("Monospaced", Font.BOLD, 12));
@@ -429,10 +443,33 @@ public class BattleScreen extends JFrame {
         SwingUtilities.invokeLater(() -> {
             GameOverScreen gos = new GameOverScreen(
                     parentFrame, leaderboard,
-                    GameState.getInstance().getLoggedInUser(),
                     hero.getName(), totalScore, won);
             gos.setVisible(true);
             dispose();
         });
     }
+
+    /** Runs AI vs AI by auto-firing turns every 1.2 seconds. */
+    private void runAIvsAI() {
+        Timer autoTimer = new Timer(1200, null);
+        autoTimer.addActionListener(e -> {
+            if (battleManager.isBattleOver()) {
+                autoTimer.stop();
+                return;
+            }
+            // Both sides use AI — player side also picks randomly
+            BattleManager.PlayerAction[] actions = BattleManager.PlayerAction.values();
+            BattleManager.PlayerAction randomAction =
+                    actions[(int)(Math.random() * actions.length)];
+            BattleResult result = battleManager.executeTurn(randomAction);
+            appendLog(result.getFullLog());
+            updateUI();
+            if (result.isBattleOver()) {
+                autoTimer.stop();
+                handleBattleEnd(result);
+            }
+        });
+        autoTimer.start();
+    }
 }
+
