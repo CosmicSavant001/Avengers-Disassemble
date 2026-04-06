@@ -7,150 +7,213 @@ import game.Leaderboard;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.*;
 
 /**
- * Main Menu – shows game title and lets the player choose a game mode.
- * Modes: Player vs AI | Player vs Player | AI vs AI
+ * MainMenu – Game Mode Selection Screen
+ *
+ * Modes:
+ *   PvP    – Player 1 vs Player 2 (both pick heroes)
+ *   PvE    – Player vs AI (player picks, AI randomly picks)
+ *   Arcade – Player picks 1 hero, fights all 10 AI heroes in waves
  */
 public class MainMenu extends JFrame {
 
-    private static final Color BG_TOP     = new Color(10, 10, 30);
-    private static final Color BG_BOTTOM  = new Color(40, 0, 0);
-    private static final Color ACCENT     = new Color(200, 30, 30);
-    private static final Color TEXT_COLOR = new Color(220, 220, 255);
-    private static final Color GOLD       = new Color(255, 215, 0);
-    private static final Font  TITLE_FONT = new Font("Impact", Font.BOLD, 56);
-    private static final Font  SUB_FONT   = new Font("Arial",  Font.BOLD, 15);
-    private static final Font  BTN_FONT   = new Font("Impact", Font.PLAIN, 22);
-
     private final Leaderboard leaderboard;
+
+    private final int[]   starX     = new int[100];
+    private final int[]   starY     = new int[100];
+    private final int[]   starSize  = new int[100];
+    private final float[] starAlpha = new float[100];
 
     public MainMenu(Leaderboard leaderboard) {
         this.leaderboard = leaderboard;
-        setTitle("Avengers Disassemble");
+        setTitle("Avengers Disassemble – Select Mode");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(820, 600);
+        setSize(860, 620);
         setLocationRelativeTo(null);
         setResizable(false);
+        generateStars();
         buildUI();
-        AudioManager.getInstance().playMusic(AudioManager.MUSIC_MENU);
+    }
+
+    private void generateStars() {
+        for (int i = 0; i < starX.length; i++) {
+            starX[i]     = (int)(Math.random() * 860);
+            starY[i]     = (int)(Math.random() * 620);
+            starSize[i]  = (int)(Math.random() * 3) + 1;
+            starAlpha[i] = (float)(Math.random() * 0.7f + 0.2f);
+        }
     }
 
     private void buildUI() {
         JPanel root = new JPanel(new GridBagLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
-                g2.setPaint(new GradientPaint(0, 0, BG_TOP, 0, getHeight(), BG_BOTTOM));
+                g2.setPaint(new GradientPaint(
+                        0, 0, Theme.BG_DARK,
+                        getWidth(), getHeight(), Theme.BG_PRIMARY));
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(new Color(255, 255, 255, 10));
-                g2.setStroke(new BasicStroke(1));
-                for (int i = -getHeight(); i < getWidth(); i += 40)
-                    g2.drawLine(i, 0, i + getHeight(), getHeight());
+
+                for (int i = 0; i < starX.length; i++) {
+                    g2.setColor(new Color(1f, 1f, 1f, starAlpha[i]));
+                    g2.fillOval(starX[i], starY[i], starSize[i], starSize[i]);
+                }
+
+                g2.setPaint(new RadialGradientPaint(
+                        new Point(getWidth() / 2, getHeight()),
+                        getWidth() / 2f,
+                        new float[]{0f, 1f},
+                        new Color[]{new Color(255, 107, 157, 60),
+                                new Color(0, 0, 0, 0)}));
+                g2.fillRect(0, 0, getWidth(), getHeight());
             }
         };
-        root.setBorder(new EmptyBorder(30, 40, 30, 40));
+        root.setBorder(new EmptyBorder(30, 50, 30, 50));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx  = 0;
         gbc.fill   = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(8, 10, 8, 10);
 
-        // Title
+        // ── Title ──
         JLabel title = new JLabel("AVENGERS", SwingConstants.CENTER);
-        title.setFont(TITLE_FONT);
-        title.setForeground(ACCENT);
-        gbc.gridy = 0; root.add(title, gbc);
+        title.setFont(new Font("Impact", Font.BOLD, 52));
+        title.setForeground(Theme.GOLD);
+        gbc.gridy = 0;
+        root.add(title, gbc);
 
-        JLabel sub = new JLabel("D  I  S  A  S  S  E  M  B  L  E", SwingConstants.CENTER);
-        sub.setFont(SUB_FONT);
-        sub.setForeground(GOLD);
-        gbc.gridy = 1; root.add(sub, gbc);
+        JLabel sub = new JLabel("D  I  S  A  S  S  E  M  B  L  E",
+                SwingConstants.CENTER);
+        sub.setFont(new Font("Arial", Font.BOLD, 14));
+        sub.setForeground(Theme.COSMIC_BLUE);
+        gbc.gridy = 1; gbc.insets = new Insets(0, 10, 6, 10);
+        root.add(sub, gbc);
 
-        JSeparator sep = new JSeparator();
-        sep.setForeground(ACCENT);
-        gbc.gridy = 2; gbc.insets = new Insets(4, 60, 4, 60);
-        root.add(sep, gbc);
-        gbc.insets = new Insets(10, 10, 10, 10);
+        // ── Divider ──
+        gbc.gridy = 2; gbc.insets = new Insets(0, 60, 14, 60);
+        root.add(cosmicDivider(), gbc);
 
-        JLabel modeLabel = new JLabel("SELECT GAME MODE", SwingConstants.CENTER);
-        modeLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        modeLabel.setForeground(new Color(180, 180, 220));
-        gbc.gridy = 3; root.add(modeLabel, gbc);
+        // ── Select Mode label ──
+        JLabel modeLbl = new JLabel("— SELECT GAME MODE —", SwingConstants.CENTER);
+        modeLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        modeLbl.setForeground(Theme.TEXT_DIM);
+        gbc.gridy = 3; gbc.insets = new Insets(0, 10, 10, 10);
+        root.add(modeLbl, gbc);
 
-        gbc.gridy = 4;
-        root.add(modeButton("⚔  PLAYER  vs  AI",
-            "You control a hero — fight against the computer",
-            new Color(160, 20, 20),
-            e -> startMode(GameState.GameMode.PLAYER_VS_AI)), gbc);
+        // ── Mode Buttons ──
+        gbc.gridy = 4; gbc.insets = new Insets(6, 10, 6, 10);
+        root.add(modeCard(
+                "⚔  PLAYER  vs  PLAYER",
+                "PvP  –  Both players choose their own hero and battle each other",
+                new Color(30,  80, 200),
+                new Color(60, 120, 255),
+                e -> startMode(GameState.GameMode.PVP)
+        ), gbc);
 
         gbc.gridy = 5;
-        root.add(modeButton("🆚  PLAYER  vs  PLAYER",
-            "Two players take turns on the same keyboard",
-            new Color(20, 80, 160),
-            e -> startMode(GameState.GameMode.PLAYER_VS_PLAYER)), gbc);
+        root.add(modeCard(
+                "🤖  PLAYER  vs  AI",
+                "PvE  –  You pick a hero. AI randomly picks a hero to fight you",
+                new Color(150, 20, 150),
+                new Color(200, 50, 200),
+                e -> startMode(GameState.GameMode.PVE)
+        ), gbc);
 
         gbc.gridy = 6;
-        root.add(modeButton("🤖  AI  vs  AI",
-            "Sit back and watch two AIs battle it out",
-            new Color(20, 100, 40),
-            e -> startMode(GameState.GameMode.AI_VS_AI)), gbc);
+        root.add(modeCard(
+                "🏆  ARCADE  MODE",
+                "Arcade  –  Pick 1 hero. Survive all 10 AI heroes in a row!",
+                new Color(160,  90,  0),
+                new Color(220, 140,  0),
+                e -> startMode(GameState.GameMode.ARCADE)
+        ), gbc);
 
-        JButton lbBtn = new JButton("🏆  LEADERBOARD");
-        lbBtn.setFont(new Font("Arial", Font.BOLD, 13));
-        lbBtn.setBackground(new Color(30, 30, 60));
-        lbBtn.setForeground(GOLD);
-        lbBtn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(GOLD, 1), new EmptyBorder(6, 20, 6, 20)));
+        // ── Leaderboard ──
+        JButton lbBtn = new JButton("🏅  LEADERBOARD");
+        lbBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        lbBtn.setBackground(Theme.BTN_DARK);
+        lbBtn.setForeground(Theme.GOLD);
         lbBtn.setFocusPainted(false);
+        lbBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.GOLD, 1),
+                new EmptyBorder(7, 20, 7, 20)));
         lbBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         lbBtn.addActionListener(e -> showLeaderboard());
-        gbc.gridy = 7; gbc.insets = new Insets(20, 100, 0, 100);
+        gbc.gridy = 7; gbc.insets = new Insets(18, 160, 0, 160);
         root.add(lbBtn, gbc);
 
         add(root);
     }
 
-    private JPanel modeButton(String title, String desc, Color color,
-                               java.awt.event.ActionListener action) {
-        JPanel panel = new JPanel(new BorderLayout(12, 0)) {
+    // ── Mode Card ─────────────────────────────────────────────────────────
+    private JPanel modeCard(String title, String desc,
+                            Color bgNormal, Color bgHover,
+                            ActionListener action) {
+        JPanel card = new JPanel(new BorderLayout(14, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
             }
         };
-        panel.setBackground(new Color(color.getRed(), color.getGreen(), color.getBlue(), 180));
-        panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(color.brighter(), 2),
-                new EmptyBorder(14, 20, 14, 20)));
-        panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        card.setBackground(bgNormal);
+        card.setOpaque(false);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(bgHover, 2),
+                new EmptyBorder(16, 20, 16, 20)));
+        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(BTN_FONT);
+        titleLbl.setFont(new Font("Impact", Font.PLAIN, 24));
         titleLbl.setForeground(Color.WHITE);
 
         JLabel descLbl = new JLabel(desc, SwingConstants.RIGHT);
         descLbl.setFont(new Font("Arial", Font.ITALIC, 12));
-        descLbl.setForeground(new Color(200, 200, 200));
+        descLbl.setForeground(new Color(210, 210, 230));
 
-        panel.add(titleLbl, BorderLayout.WEST);
-        panel.add(descLbl,  BorderLayout.EAST);
+        card.add(titleLbl, BorderLayout.WEST);
+        card.add(descLbl,  BorderLayout.EAST);
 
-        panel.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                panel.setBackground(color); panel.repaint(); }
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                panel.setBackground(new Color(color.getRed(), color.getGreen(), color.getBlue(), 180));
-                panel.repaint(); }
-            public void mouseClicked(java.awt.event.MouseEvent e) {
+        card.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                card.setBackground(bgHover);  card.repaint(); }
+            public void mouseExited(MouseEvent e) {
+                card.setBackground(bgNormal); card.repaint(); }
+            public void mouseClicked(MouseEvent e) {
                 AudioManager.getInstance().playSFX(AudioManager.SFX_BUTTON_CLICK);
-                action.actionPerformed(null); }
+                action.actionPerformed(null);
+            }
         });
-        return panel;
+        return card;
     }
 
+    // ── Cosmic Divider ────────────────────────────────────────────────────
+    private JPanel cosmicDivider() {
+        JPanel line = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                int cx = getWidth() / 2;
+                g2.setPaint(new GradientPaint(0, 0,
+                        new Color(0, 0, 0, 0), cx, 0, Theme.COSMIC_BLUE));
+                g2.fillRect(0, getHeight() / 2 - 1, cx, 2);
+                g2.setPaint(new GradientPaint(cx, 0, Theme.COSMIC_BLUE,
+                        getWidth(), 0, new Color(0, 0, 0, 0)));
+                g2.fillRect(cx, getHeight() / 2 - 1, cx, 2);
+                g2.setColor(Theme.GOLD);
+                int[] xp = {cx, cx + 7, cx, cx - 7};
+                int[] yp = {0, getHeight() / 2, getHeight(), getHeight() / 2};
+                g2.fillPolygon(xp, yp, 4);
+            }
+        };
+        line.setOpaque(false);
+        line.setPreferredSize(new Dimension(400, 14));
+        return line;
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────
     private void startMode(GameState.GameMode mode) {
         GameState.getInstance().setGameMode(mode);
         SwingUtilities.invokeLater(() -> {
@@ -162,22 +225,27 @@ public class MainMenu extends JFrame {
 
     private void showLeaderboard() {
         var scores = leaderboard.getTopScores();
-        StringBuilder sb = new StringBuilder("═══════ LEADERBOARD ═══════\n\n");
-        sb.append(String.format("%-4s %-15s %-12s %6s%n", "#", "Player", "Hero", "Score"));
-        sb.append("─".repeat(42)).append("\n");
+        StringBuilder sb = new StringBuilder(
+                "═══════════ LEADERBOARD ═══════════\n\n");
+        sb.append(String.format("%-4s %-16s %-14s %s%n",
+                "#", "Hero", "Mode", "Score"));
+        sb.append("─".repeat(46)).append("\n");
         int rank = 1;
-        for (var e : scores) {
-            sb.append(String.format("%-4d %-15s %-12s %6d%n",
-                    rank++, e.getUsername(), e.getHeroName(), e.getScore()));
+        for (var en : scores) {
+            sb.append(String.format("%-4d %-16s %-14s %d%n",
+                    rank++, en.getUsername(),
+                    en.getHeroName(), en.getScore()));
         }
         if (scores.isEmpty()) sb.append("No scores yet!\n");
+
         JTextArea ta = new JTextArea(sb.toString());
         ta.setFont(new Font("Monospaced", Font.PLAIN, 13));
         ta.setEditable(false);
-        ta.setBackground(BG_TOP);
-        ta.setForeground(TEXT_COLOR);
+        ta.setBackground(Theme.BG_DARK);
+        ta.setForeground(Theme.TEXT_PRIMARY);
         JScrollPane sp = new JScrollPane(ta);
-        sp.setPreferredSize(new Dimension(420, 260));
-        JOptionPane.showMessageDialog(this, sp, "Leaderboard", JOptionPane.PLAIN_MESSAGE);
+        sp.setPreferredSize(new Dimension(440, 280));
+        JOptionPane.showMessageDialog(this, sp, "Leaderboard",
+                JOptionPane.PLAIN_MESSAGE);
     }
 }

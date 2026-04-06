@@ -1,55 +1,38 @@
 package ai;
 
-import characters.Enemy;
+import characters.Hero;
 import java.util.Random;
 
 /**
- * Simple AI controller for enemy characters.
- * Chooses between ATTACK and USE_ABILITY based on weighted random logic.
- * Ability is preferred when available (60/40 split).
+ * AI controller for enemy characters.
+ * Randomly chooses between Attack, Skill1, or Skill2.
  */
 public class EnemyAI {
 
-    public enum AIAction { ATTACK, USE_ABILITY }
+    public enum AIAction { ATTACK, USE_SKILL_1, USE_SKILL_2 }
 
-    private final Enemy enemy;
+    private final Hero   enemy;
     private final Random random;
 
-    // Tuning weights
-    private static final double ABILITY_PREFERENCE = 0.60; // 60% prefer ability when ready
-
-    public EnemyAI(Enemy enemy) {
+    public EnemyAI(Hero enemy) {
         this.enemy  = enemy;
         this.random = new Random();
     }
 
-    /**
-     * Decides the next action for the enemy.
-     * - If ability is ready: 60% chance to use it, 40% chance to attack.
-     * - If ability is on cooldown: always attacks.
-     */
     public AIAction chooseAction() {
-        boolean abilityReady = enemy.getSpecialAbility() != null
-                && enemy.getSpecialAbility().isReady();
+        boolean s1Ready = enemy.getSkill1() != null && enemy.getSkill1().isReady();
+        boolean s2Ready = enemy.getSkill2() != null && enemy.getSkill2().isReady();
+        boolean s3Ready = enemy.getSkill3() != null && enemy.getSkill3().isReady();
 
-        if (abilityReady && random.nextDouble() < ABILITY_PREFERENCE) {
-            return AIAction.USE_ABILITY;
+        // Low HP: prefer strongest available skill
+        if (enemy.getHealthPercentage() < 0.30) {
+            if (s3Ready) return AIAction.USE_SKILL_2; // use skill 3 mapped to skill 2 slot
+            if (s1Ready) return AIAction.USE_SKILL_1;
         }
-        return AIAction.ATTACK;
-    }
 
-    /**
-     * Smarter version that factors in HP thresholds.
-     * When the enemy is below 30% HP it always uses ability if available.
-     */
-    public AIAction chooseActionSmart() {
-        boolean abilityReady = enemy.getSpecialAbility() != null
-                && enemy.getSpecialAbility().isReady();
-        boolean lowHealth = enemy.getHealthPercentage() < 0.30;
-
-        if (abilityReady && (lowHealth || random.nextDouble() < ABILITY_PREFERENCE)) {
-            return AIAction.USE_ABILITY;
-        }
+        double roll = random.nextDouble();
+        if (s1Ready && roll < 0.30) return AIAction.USE_SKILL_1;
+        if (s2Ready && roll < 0.50) return AIAction.USE_SKILL_2;
         return AIAction.ATTACK;
     }
 }

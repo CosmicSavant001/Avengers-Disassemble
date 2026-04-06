@@ -1,32 +1,28 @@
 package characters;
 
-import abilities.Smash;
+import abilities.hulk.*;
 
-/**
- * Hulk – The Strongest One There Is.
- * Highest health and attack, lowest defense, but Smash deals earth-shaking damage.
- */
 public class Hulk extends Hero {
 
     private boolean enraged = false;
-    private static final int ENRAGE_THRESHOLD = 40; // % HP
+    private static final int ENRAGE_HP_PERCENT = 40;
 
     public Hulk() {
-        super("Hulk", 180, 28, 5);
-        setSpecialAbility(new Smash());
+        super("Hulk", 3500, 28, 5, 300);
+        setSkill1(new PowerSmash());
+        setSkill2(new ArenaBreaker());
+        setSkill3(new UltimateFury());
+        setSpecialAbility(getSkill1());
         setImagePath("assets/images/heroes/hulk.png");
     }
 
     @Override
     public String getDescription() {
-        return "HULK SMASH! The madder Hulk gets, the stronger he gets. " +
-               "Hulk has the most raw health and attack in the roster. " +
-               "When his health drops low, he enters a rage state for extra power.";
+        return "Fueled by rage, Hulk battles his clone to prove that true " +
+                "strength comes from heart, not programming. When his HP drops " +
+                "below 40% he enters RAGE mode for a massive attack boost!";
     }
 
-    /**
-     * When below the enrage threshold, attack power gets a boost.
-     */
     @Override
     public void takeDamage(int rawDamage) {
         super.takeDamage(rawDamage);
@@ -34,14 +30,14 @@ public class Hulk extends Hero {
     }
 
     private void checkEnrage() {
-        boolean shouldEnrage = getHealthPercentage() * 100 < ENRAGE_THRESHOLD;
+        boolean shouldEnrage = getHealthPercentage() * 100 < ENRAGE_HP_PERCENT;
         if (shouldEnrage && !enraged) {
             enraged = true;
-            attackPower += 8;
-            System.out.println("HULK ENRAGED! Attack power surges!");
+            attackPower += 40;
+            System.out.println("HULK ENRAGED! Attack surges by 40!");
         } else if (!shouldEnrage && enraged) {
             enraged = false;
-            attackPower -= 8;
+            attackPower -= 40;
         }
     }
 

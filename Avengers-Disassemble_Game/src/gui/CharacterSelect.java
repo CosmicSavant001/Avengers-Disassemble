@@ -12,19 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Character selection screen.
- * - PvAI:  Player 1 picks one hero → goes to battle vs AI
- * - PvP:   Player 1 picks, then Player 2 picks → both go to battle
- * - AIvAI: Auto-picks two random heroes → goes straight to battle
+ * CharacterSelect - Hero selection screen for all 3 game modes.
+ * Cosmic Marvel colour scheme.
+ *
+ * PvP    : Player 1 Blue picks first, then Player 2 Red picks
+ * PvE    : Player picks, AI randomly picks opponent
+ * Arcade : Player picks 1 hero, fights all 10 AI heroes in waves
  */
 public class CharacterSelect extends JFrame {
-
-    private static final Color BG_COLOR    = new Color(10, 10, 30);
-    private static final Color ACCENT      = new Color(200, 30, 30);
-    private static final Color TEXT_COLOR  = new Color(220, 220, 255);
-    private static final Color CARD_BG     = new Color(20, 20, 60);
-    private static final Color SEL_BG      = new Color(50, 10, 10);
-    private static final Color SEL_BORDER  = new Color(255, 200, 0);
 
     private final JFrame      parentFrame;
     private final Leaderboard leaderboard;
@@ -32,155 +27,157 @@ public class CharacterSelect extends JFrame {
     private final List<Hero>   heroes    = new ArrayList<>();
     private Hero               selected  = null;
     private final List<JPanel> heroCards = new ArrayList<>();
+    private int                pickingForPlayer = 1;
 
-    private int    pickingForPlayer = 1; // 1 or 2
-    private JLabel titleLabel;
-    private JLabel descLabel;
-    private JLabel statsLabel;
+    private JLabel  titleLabel;
+    private JLabel  playerBadge;
+    private JLabel  descLabel;
+    private JLabel  statsLabel;
     private JButton confirmBtn;
 
     public CharacterSelect(JFrame parent, Leaderboard leaderboard) {
         this.parentFrame = parent;
         this.leaderboard = leaderboard;
-
-        setTitle("Choose Your Hero");
+        setTitle("Avengers Disassemble - Choose Hero");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 620);
+        setSize(980, 660);
         setLocationRelativeTo(null);
         setResizable(false);
-
         buildHeroes();
-
-        // AI vs AI — skip selection entirely
-        if (GameState.getInstance().isAIvAI()) {
-            autoPickForAIvAI();
-        } else {
-            buildUI();
-        }
+        buildUI();
     }
 
     private void buildHeroes() {
         heroes.add(new IronMan());
-        heroes.add(new CaptainAmerica());
+        heroes.add(new SpiderMan());
         heroes.add(new Thor());
         heroes.add(new Hulk());
         heroes.add(new BlackWidow());
+        heroes.add(new ScarletWitch());
+        heroes.add(new DoctorStrange());
+        heroes.add(new Cadie());
     }
-
-    // ── AI vs AI: auto-pick two different heroes ────────────────────────
-    private void autoPickForAIvAI() {
-        GameState.getInstance().setSelectedHero(heroes.get(0));  // Iron Man
-        GameState.getInstance().setSelectedHero2(heroes.get(2)); // Thor
-        openBattleScreen();
-    }
-
-    // ─── UI ──────────────────────────────────────────────────────────────
 
     private void buildUI() {
-        JPanel root = new JPanel(new BorderLayout(10, 10));
-        root.setBackground(BG_COLOR);
-        root.setBorder(new EmptyBorder(20, 20, 20, 20));
-
-        // Title changes based on mode & turn
-        titleLabel = new JLabel(getPickTitle(), SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Impact", Font.BOLD, 30));
-        titleLabel.setForeground(ACCENT);
-        root.add(titleLabel, BorderLayout.NORTH);
-
-        // Hero cards
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 5, 12, 0));
-        cardsPanel.setBackground(BG_COLOR);
-        for (Hero h : heroes) {
-            JPanel card = buildHeroCard(h);
-            heroCards.add(card);
-            cardsPanel.add(card);
-        }
-        root.add(cardsPanel, BorderLayout.CENTER);
-
-        // Bottom info + confirm
-        JPanel infoRow = new JPanel(new BorderLayout(20, 0));
-        infoRow.setBackground(BG_COLOR);
-
-        descLabel = new JLabel("<html><i>Click a hero to learn more.</i></html>");
-        descLabel.setForeground(TEXT_COLOR);
-        descLabel.setFont(new Font("Arial", Font.PLAIN, 13));
-        descLabel.setPreferredSize(new Dimension(500, 70));
-
-        statsLabel = new JLabel("", SwingConstants.RIGHT);
-        statsLabel.setForeground(new Color(180, 220, 255));
-        statsLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
-
-        infoRow.add(descLabel,  BorderLayout.CENTER);
-        infoRow.add(statsLabel, BorderLayout.EAST);
-
-        confirmBtn = buildButton("⚔  CONFIRM", e -> handleConfirm());
-        confirmBtn.setEnabled(false);
-        confirmBtn.setFont(new Font("Impact", Font.BOLD, 20));
-        confirmBtn.setPreferredSize(new Dimension(160, 50));
-
-        JPanel bottomRow = new JPanel(new BorderLayout(10, 0));
-        bottomRow.setBackground(BG_COLOR);
-        bottomRow.add(infoRow,    BorderLayout.CENTER);
-        bottomRow.add(confirmBtn, BorderLayout.EAST);
-
-        root.add(bottomRow, BorderLayout.SOUTH);
+        JPanel root = new JPanel(new BorderLayout(10, 10)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setPaint(new GradientPaint(0, 0, Theme.BG_DARK,
+                        getWidth(), getHeight(), Theme.BG_PRIMARY));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        root.setBorder(new EmptyBorder(14, 14, 14, 14));
+        root.add(buildTopBanner(),  BorderLayout.NORTH);
+        root.add(buildCardsPanel(), BorderLayout.CENTER);
+        root.add(buildBottomBar(),  BorderLayout.SOUTH);
         add(root);
-        setVisible(true);
     }
 
-    // ─── Hero Card ────────────────────────────────────────────────────────
+    private JPanel buildTopBanner() {
+        JPanel panel = new JPanel(new BorderLayout(10, 0));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(0, 0, 8, 0));
 
-    private JPanel buildHeroCard(Hero hero) {
-        JPanel card = new JPanel(new BorderLayout(4, 4));
-        card.setBackground(CARD_BG);
+        JButton back = new JButton("Back");
+        back.setFont(new Font("Arial", Font.BOLD, 12));
+        back.setBackground(Theme.BTN_DARK);
+        back.setForeground(Theme.TEXT_PRIMARY);
+        back.setFocusPainted(false);
+        back.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(80, 80, 140), 1),
+                new EmptyBorder(6, 14, 6, 14)));
+        back.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        back.addActionListener(e -> { parentFrame.setVisible(true); dispose(); });
+
+        JPanel center = new JPanel(new GridBagLayout());
+        center.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0; gbc.gridy = 0; gbc.insets = new Insets(0, 0, 4, 0);
+
+        titleLabel = new JLabel(getTitleText(), SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Impact", Font.BOLD, 26));
+        titleLabel.setForeground(Theme.GOLD);
+        center.add(titleLabel, gbc);
+
+        gbc.gridy = 1;
+        playerBadge = new JLabel(getBadgeText(), SwingConstants.CENTER);
+        playerBadge.setFont(new Font("Arial", Font.BOLD, 13));
+        playerBadge.setForeground(getBadgeColor());
+        playerBadge.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(getBadgeColor(), 2),
+                new EmptyBorder(3, 12, 3, 12)));
+        center.add(playerBadge, gbc);
+
+        panel.add(back,   BorderLayout.WEST);
+        panel.add(center, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildCardsPanel() {
+        JPanel panel = new JPanel(new GridLayout(1, heroes.size(), 10, 0));
+        panel.setOpaque(false);
+        for (Hero h : heroes) {
+            JPanel card = buildCard(h);
+            heroCards.add(card);
+            panel.add(card);
+        }
+        return panel;
+    }
+
+    private JPanel buildCard(Hero hero) {
+        JPanel card = new JPanel(new BorderLayout(4, 6));
+        card.setBackground(Theme.BG_CARD);
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(60, 60, 100), 2),
-                new EmptyBorder(10, 8, 10, 8)));
+                BorderFactory.createLineBorder(new Color(50, 50, 100), 2),
+                new EmptyBorder(8, 6, 8, 6)));
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        // Portrait image or coloured fallback
-        java.awt.image.BufferedImage heroImg = null;
+        java.awt.image.BufferedImage img = null;
         try {
             java.io.File f = new java.io.File(hero.getImagePath());
-            if (f.exists()) heroImg = javax.imageio.ImageIO.read(f);
+            if (f.exists()) img = javax.imageio.ImageIO.read(f);
         } catch (Exception ignored) {}
-        final java.awt.image.BufferedImage finalImg = heroImg;
-        final Color hColor = heroColor(hero);
+        final java.awt.image.BufferedImage portrait = img;
 
-        JPanel portrait = new JPanel() {
+        JPanel imgPanel = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g;
-                if (finalImg != null) {
+                if (portrait != null) {
                     g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
                             RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-                    g2.drawImage(finalImg, 0, 0, getWidth(), getHeight(), null);
+                    g2.drawImage(portrait, 0, 0, getWidth(), getHeight(), null);
                 } else {
-                    g2.setColor(hColor);
+                    g2.setPaint(new GradientPaint(0, 0, Theme.BG_PRIMARY,
+                            0, getHeight(), Theme.BG_DARK));
                     g2.fillRect(0, 0, getWidth(), getHeight());
-                    g2.setColor(Color.WHITE);
-                    g2.setFont(new Font("Impact", Font.PLAIN, 28));
+                    g2.setColor(Theme.COSMIC_BLUE);
+                    g2.setFont(new Font("Impact", Font.PLAIN, 22));
                     FontMetrics fm = g2.getFontMetrics();
                     String ini = getInitials(hero.getName());
-                    g2.drawString(ini, (getWidth()-fm.stringWidth(ini))/2,
-                            getHeight()/2 + fm.getAscent()/3);
+                    g2.drawString(ini,
+                            (getWidth() - fm.stringWidth(ini)) / 2,
+                            getHeight() / 2 + fm.getAscent() / 3);
                 }
             }
         };
-        portrait.setPreferredSize(new Dimension(110, 120));
-        card.add(portrait, BorderLayout.CENTER);
+        imgPanel.setPreferredSize(new Dimension(100, 110));
+        imgPanel.setOpaque(false);
 
-        JLabel nameLabel = new JLabel(hero.getName(), SwingConstants.CENTER);
-        nameLabel.setForeground(TEXT_COLOR);
-        nameLabel.setFont(new Font("Impact", Font.PLAIN, 14));
-        card.add(nameLabel, BorderLayout.NORTH);
+        JLabel nameLbl = new JLabel(hero.getName(), SwingConstants.CENTER);
+        nameLbl.setFont(new Font("Impact", Font.PLAIN, 13));
+        nameLbl.setForeground(Theme.TEXT_PRIMARY);
 
-        JPanel statBar = new JPanel(new GridLayout(3, 1, 2, 2));
-        statBar.setBackground(CARD_BG);
-        statBar.add(miniStat("HP:  " + hero.getMaxHealth(),    new Color(80, 200, 80)));
-        statBar.add(miniStat("ATK: " + hero.getAttackPower(),  new Color(200, 80, 80)));
-        statBar.add(miniStat("DEF: " + hero.getDefensePower(), new Color(80, 80, 200)));
-        card.add(statBar, BorderLayout.SOUTH);
+        JPanel statBar = new JPanel(new GridLayout(3, 1, 1, 1));
+        statBar.setOpaque(false);
+        statBar.add(miniStat("HP  " + hero.getMaxHealth(),    Theme.HP_HERO));
+        statBar.add(miniStat("ATK " + hero.getAttackPower(),  Theme.NEBULA_PINK));
+        statBar.add(miniStat("DEF " + hero.getDefensePower(), Theme.COSMIC_BLUE));
+
+        card.add(nameLbl,  BorderLayout.NORTH);
+        card.add(imgPanel, BorderLayout.CENTER);
+        card.add(statBar,  BorderLayout.SOUTH);
 
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent e) {
@@ -188,75 +185,135 @@ public class CharacterSelect extends JFrame {
                 AudioManager.getInstance().playSFX(AudioManager.SFX_BUTTON_CLICK);
             }
             public void mouseEntered(java.awt.event.MouseEvent e) {
-                if (selected != hero) card.setBackground(new Color(30, 30, 80));
+                if (selected != hero) { card.setBackground(Theme.BG_PRIMARY); card.repaint(); }
             }
             public void mouseExited(java.awt.event.MouseEvent e) {
-                if (selected != hero) card.setBackground(CARD_BG);
+                if (selected != hero) { card.setBackground(Theme.BG_CARD); card.repaint(); }
             }
         });
         return card;
     }
 
-    private void selectHero(Hero hero, JPanel clickedCard) {
-        selected = hero;
-        for (JPanel c : heroCards) {
-            c.setBackground(CARD_BG);
-            c.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(60, 60, 100), 2),
-                    new EmptyBorder(10, 8, 10, 8)));
-        }
-        clickedCard.setBackground(SEL_BG);
-        clickedCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(SEL_BORDER, 3),
-                new EmptyBorder(10, 8, 10, 8)));
+    private JPanel buildBottomBar() {
+        JPanel panel = new JPanel(new BorderLayout(16, 0));
+        panel.setBackground(Theme.BG_PANEL);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(40, 40, 80), 1),
+                new EmptyBorder(10, 14, 10, 14)));
 
-        descLabel.setText("<html>" + hero.getDescription() + "</html>");
-        String ab = hero.getSpecialAbility() != null ? hero.getSpecialAbility().getName() : "None";
-        statsLabel.setText(String.format(
-                "<html><b>HP:</b> %d &nbsp; <b>ATK:</b> %d &nbsp; <b>DEF:</b> %d<br/><b>Ability:</b> %s</html>",
-                hero.getMaxHealth(), hero.getAttackPower(), hero.getDefensePower(), ab));
-        confirmBtn.setEnabled(true);
-        revalidate(); repaint();
+        descLabel = new JLabel("<html><i>Click a hero to see their story.</i></html>");
+        descLabel.setForeground(Theme.TEXT_DIM);
+        descLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        descLabel.setPreferredSize(new Dimension(500, 55));
+
+        statsLabel = new JLabel("", SwingConstants.RIGHT);
+        statsLabel.setForeground(Theme.COSMIC_BLUE);
+        statsLabel.setFont(new Font("Monospaced", Font.PLAIN, 11));
+
+        confirmBtn = new JButton("CONFIRM") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(isEnabled() ? getBadgeColor() : new Color(40, 40, 60));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Impact", Font.PLAIN, 20));
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(getText(),
+                        (getWidth() - fm.stringWidth(getText())) / 2,
+                        (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+            }
+        };
+        confirmBtn.setContentAreaFilled(false);
+        confirmBtn.setBorderPainted(false);
+        confirmBtn.setFocusPainted(false);
+        confirmBtn.setPreferredSize(new Dimension(160, 48));
+        confirmBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        confirmBtn.setEnabled(false);
+        confirmBtn.addActionListener(e -> handleConfirm());
+
+        JPanel infoPanel = new JPanel(new BorderLayout(8, 0));
+        infoPanel.setOpaque(false);
+        infoPanel.add(descLabel,  BorderLayout.CENTER);
+        infoPanel.add(statsLabel, BorderLayout.EAST);
+
+        panel.add(infoPanel,  BorderLayout.CENTER);
+        panel.add(confirmBtn, BorderLayout.EAST);
+        return panel;
     }
 
-    // ─── Confirm / Navigation ─────────────────────────────────────────────
+    private void selectHero(Hero hero, JPanel clicked) {
+        selected = hero;
+        Color selColor = (pickingForPlayer == 2) ? Theme.RED_TEAM : Theme.BLUE_TEAM;
+        for (JPanel c : heroCards) {
+            c.setBackground(Theme.BG_CARD);
+            c.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(50, 50, 100), 2),
+                    new EmptyBorder(8, 6, 8, 6)));
+        }
+        clicked.setBackground(new Color(10, 15, 50));
+        clicked.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(selColor, 3),
+                new EmptyBorder(8, 6, 8, 6)));
+        descLabel.setText("<html>" + hero.getDescription() + "</html>");
+        String ab = hero.getSpecialAbility() != null
+                ? hero.getSpecialAbility().getName() : "None";
+        statsLabel.setText(String.format(
+                "<html><b>HP:</b> %d &nbsp;<b>ATK:</b> %d &nbsp;<b>DEF:</b> %d"
+                + " &nbsp;<b>MP:</b> %d<br/><b>Skill:</b> %s</html>",
+                hero.getMaxHealth(), hero.getAttackPower(),
+                hero.getDefensePower(), hero.getMaxMana(), ab));
+        confirmBtn.setEnabled(true);
+        confirmBtn.repaint();
+        revalidate(); repaint();
+    }
 
     private void handleConfirm() {
         if (selected == null) return;
         AudioManager.getInstance().playSFX(AudioManager.SFX_BUTTON_CLICK);
-
-        if (pickingForPlayer == 1) {
-            GameState.getInstance().setSelectedHero(selected);
-
-            if (GameState.getInstance().isPvP()) {
-                // PvP: ask Player 2 to pick
-                pickingForPlayer = 2;
-                selected = null;
-                confirmBtn.setEnabled(false);
-                titleLabel.setText(getPickTitle());
-                // Deselect all cards visually
-                for (JPanel c : heroCards) {
-                    c.setBackground(CARD_BG);
-                    c.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(new Color(60, 60, 100), 2),
-                            new EmptyBorder(10, 8, 10, 8)));
-                }
-                descLabel.setText("<html><i>Player 2 — click a hero to learn more.</i></html>");
-                statsLabel.setText("");
-                revalidate(); repaint();
+        GameState gs = GameState.getInstance();
+        if (gs.isPvP()) {
+            if (pickingForPlayer == 1) {
+                gs.setSelectedHero(selected);
+                switchToPlayer2();
             } else {
-                // PvAI: only one pick needed
-                openBattleScreen();
+                gs.setSelectedHero2(selected);
+                openBattle();
             }
-
         } else {
-            // Player 2 confirmed
-            GameState.getInstance().setSelectedHero2(selected);
-            openBattleScreen();
+            gs.setSelectedHero(selected);
+            openBattle();
         }
     }
 
-    private void openBattleScreen() {
+    private void switchToPlayer2() {
+        pickingForPlayer = 2;
+        selected = null;
+        confirmBtn.setEnabled(false);
+        for (JPanel c : heroCards) {
+            c.setBackground(Theme.BG_CARD);
+            c.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(50, 50, 100), 2),
+                    new EmptyBorder(8, 6, 8, 6)));
+        }
+        titleLabel.setText(getTitleText());
+        titleLabel.setForeground(Theme.NEBULA_PINK);
+        playerBadge.setText(getBadgeText());
+        playerBadge.setForeground(Theme.RED_TEAM);
+        playerBadge.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.RED_TEAM, 2),
+                new EmptyBorder(3, 12, 3, 12)));
+        descLabel.setText("<html><i>Player 2 - click a hero to see their story.</i></html>");
+        statsLabel.setText("");
+        confirmBtn.repaint();
+        JOptionPane.showMessageDialog(this,
+                "Player 1 locked in!\n\nPlayer 2 - now choose your hero.",
+                "Player 2's Turn", JOptionPane.INFORMATION_MESSAGE);
+        revalidate(); repaint();
+    }
+
+    private void openBattle() {
         SwingUtilities.invokeLater(() -> {
             BattleScreen bs = new BattleScreen(parentFrame, leaderboard);
             bs.setVisible(true);
@@ -264,44 +321,34 @@ public class CharacterSelect extends JFrame {
         });
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────
+    private String getTitleText() {
+        GameState gs = GameState.getInstance();
+        if (gs.isPvP()) return pickingForPlayer == 1
+                ? "PLAYER 1 - CHOOSE YOUR HERO"
+                : "PLAYER 2 - CHOOSE YOUR HERO";
+        if (gs.isArcade()) return "ARCADE - CHOOSE YOUR HERO";
+        return "CHOOSE YOUR HERO";
+    }
 
-    private String getPickTitle() {
-        if (GameState.getInstance().isPvP()) {
-            return pickingForPlayer == 1
-                    ? "PLAYER 1 — CHOOSE YOUR HERO"
-                    : "PLAYER 2 — CHOOSE YOUR HERO";
-        }
-        return "SELECT YOUR HERO";
+    private String getBadgeText() {
+        GameState gs = GameState.getInstance();
+        if (gs.isPvP()) return pickingForPlayer == 1 ? "BLUE TEAM" : "RED TEAM";
+        if (gs.isArcade()) return "ARCADE MODE";
+        return "PLAYER";
+    }
+
+    private Color getBadgeColor() {
+        if (GameState.getInstance().isPvP() && pickingForPlayer == 2)
+            return Theme.RED_TEAM;
+        if (GameState.getInstance().isArcade()) return Theme.GOLD;
+        return Theme.BLUE_TEAM;
     }
 
     private JLabel miniStat(String text, Color color) {
         JLabel lbl = new JLabel(text, SwingConstants.CENTER);
+        lbl.setFont(new Font("Monospaced", Font.BOLD, 10));
         lbl.setForeground(color);
-        lbl.setFont(new Font("Monospaced", Font.BOLD, 11));
         return lbl;
-    }
-
-    private JButton buildButton(String text, java.awt.event.ActionListener l) {
-        JButton btn = new JButton(text);
-        btn.setBackground(new Color(160, 10, 10));
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Arial", Font.BOLD, 14));
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ACCENT, 2), new EmptyBorder(8, 14, 8, 14)));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(l);
-        return btn;
-    }
-
-    private Color heroColor(Hero h) {
-        if (h instanceof IronMan)        return new Color(180, 30, 30);
-        if (h instanceof CaptainAmerica) return new Color(30, 60, 180);
-        if (h instanceof Thor)           return new Color(80, 80, 180);
-        if (h instanceof Hulk)           return new Color(40, 150, 40);
-        if (h instanceof BlackWidow)     return new Color(60, 10, 80);
-        return Color.GRAY;
     }
 
     private String getInitials(String name) {

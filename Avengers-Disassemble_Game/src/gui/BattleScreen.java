@@ -2,8 +2,7 @@ package gui;
 
 import battle.BattleManager;
 import battle.BattleResult;
-import characters.Enemy;
-import characters.Hero;
+import characters.*;
 import game.AudioManager;
 import game.GameState;
 import game.Leaderboard;
@@ -13,21 +12,21 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-/**
- * BattleScreen – the main combat interface.
- * Displays hero and enemy portraits, health bars, the battle log,
- * and action buttons (Attack / Ability / Defend).
- */
 public class BattleScreen extends JFrame {
 
     // ─── References ──────────────────────────────────────────────────────
-    private final JFrame      parentFrame;
-    private final Leaderboard leaderboard;
-    private final Hero        hero;
-    private       Enemy       currentEnemy;
+    private final JFrame        parentFrame;
+    private final Leaderboard   leaderboard;
+    private final Hero          hero;
+    private       Hero          currentEnemy;
     private       BattleManager battleManager;
-    private int               totalScore = 0;
+    private       int           totalScore  = 0;
+    private       List<Hero>    arcadeWaves = new ArrayList<>();
+    private       int           currentWave = 0;
 
     // ─── Colours / Fonts ─────────────────────────────────────────────────
     private static final Color BG_COLOR       = new Color(10, 10, 30);
@@ -49,11 +48,14 @@ public class BattleScreen extends JFrame {
     private JPanel       enemyPortrait;
     private JTextArea    battleLogArea;
     private JButton      attackBtn;
-    private JButton      abilityBtn;
+    private JButton      skill1Btn;
+    private JButton      skill2Btn;
+    private JButton      skill3Btn;
     private JButton      defendBtn;
     private JLabel       turnLabel;
     private JLabel       scoreLabel;
-    private JLabel       abilityStatusLabel;
+
+    // ─── Constructor ─────────────────────────────────────────────────────
 
     public BattleScreen(JFrame parent, Leaderboard leaderboard) {
         this.parentFrame = parent;
@@ -66,32 +68,61 @@ public class BattleScreen extends JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
 
-        // Choose opponent based on game mode
-        if (GameState.getInstance().isPvAI()) {
-            startNewBattle(Enemy.createHydraAgent());
+        if (GameState.getInstance().isArcade()) {
+            arcadeWaves = generateArcadeWaves();
+            startNewBattle(arcadeWaves.get(currentWave));
+        } else if (GameState.getInstance().isPvE()) {
+            startNewBattle(getRandomHero());
         } else {
-            // PvP or AIvAI: opponent is hero2 wrapped as a pseudo-enemy
-            startNewBattle(Enemy.createHydraAgent()); // placeholder, see BattleManager extension
+            // PvP
+            startNewBattle(GameState.getInstance().getSelectedHero2());
         }
 
         buildUI();
         updateUI();
         AudioManager.getInstance().playMusic(AudioManager.MUSIC_BATTLE);
-
-        // AI vs AI: auto-run turns with a timer
-        if (GameState.getInstance().isAIvAI()) {
-            setButtonsEnabled(false);
-            appendLog("[ AI vs AI Mode - watch the battle! ]\n");
-            runAIvsAI();
-        }
     }
 
-    private void startNewBattle(Enemy enemy) {
-        this.currentEnemy   = enemy;
-        this.battleManager  = new BattleManager(hero, enemy);
+    // ─── Battle Setup ─────────────────────────────────────────────────────
+
+    private void startNewBattle(Hero enemy) {
+        this.currentEnemy  = enemy;
+        this.battleManager = new BattleManager(hero, enemy);
     }
 
-    // ─── UI Construction ─────────────────────────────────────────────────
+    /** All 10 characters shuffled, player's own character removed */
+    private List<Hero> generateArcadeWaves() {
+        List<Hero> roster = buildFullRoster();
+        Collections.shuffle(roster);
+        roster.removeIf(h -> h.getName().equals(hero.getName()));
+        // Ensure exactly 10 waves — pad with Ultron if player picked Ultron
+        while (roster.size() < 10) roster.add(new Ultron());
+        return roster.subList(0, 10);
+    }
+
+    /** Random single opponent for PvE, not the same as player */
+    private Hero getRandomHero() {
+        List<Hero> roster = buildFullRoster();
+        roster.removeIf(h -> h.getName().equals(hero.getName()));
+        return roster.get((int)(Math.random() * roster.size()));
+    }
+
+    private List<Hero> buildFullRoster() {
+        return new ArrayList<>(List.of(
+                new Thor(),
+                new IronMan(),
+                new BlackWidow(),
+                new Hulk(),
+                new SpiderMan(),
+                new ScarletWitch(),
+                new DoctorStrange(),
+                new Cadie(),
+                new Loki(),
+                new Ultron()
+        ));
+    }
+
+    // ─── UI Construction ──────────────────────────────────────────────────
 
     private void buildUI() {
         JPanel root = new JPanel(new BorderLayout(8, 8));
@@ -105,7 +136,7 @@ public class BattleScreen extends JFrame {
         add(root);
     }
 
-    // ── Top bar: score + turn counter ──────────────────────────────────
+    // ── Top bar ────────────────────────────────────────────────────────
     private JPanel buildTopBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setBackground(new Color(20, 5, 5));
@@ -129,15 +160,13 @@ public class BattleScreen extends JFrame {
         return bar;
     }
 
-    // ── Main arena: hero | log | enemy ─────────────────────────────────
+    // ── Arena ──────────────────────────────────────────────────────────
     private JPanel buildArenaPanel() {
         JPanel arena = new JPanel(new GridLayout(1, 3, 12, 0));
         arena.setBackground(BG_COLOR);
-
-        arena.add(buildCharacterPanel(true));   // Hero (left)
-        arena.add(buildBattleLogPanel());        // Log (center)
-        arena.add(buildCharacterPanel(false));  // Enemy (right)
-
+        arena.add(buildCharacterPanel(true));
+        arena.add(buildBattleLogPanel());
+        arena.add(buildCharacterPanel(false));
         return arena;
     }
 
@@ -146,27 +175,30 @@ public class BattleScreen extends JFrame {
         panel.setBackground(new Color(15, 15, 40));
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(ACCENT, 1),
-                new EmptyBorder(10, 10, 10, 10)
-        ));
+                new EmptyBorder(10, 10, 10, 10)));
 
-        // Name
-        JLabel nameLabel = new JLabel(isHero ? hero.getName() : currentEnemy.getName(), SwingConstants.CENTER);
+        JLabel nameLabel = new JLabel(
+                isHero ? hero.getName() : currentEnemy.getName(),
+                SwingConstants.CENTER);
         nameLabel.setFont(new Font("Impact", Font.PLAIN, 20));
-        nameLabel.setForeground(isHero ? new Color(100, 180, 255) : new Color(255, 100, 100));
-        if (isHero) heroNameLabel = nameLabel; else enemyNameLabel = nameLabel;
+        nameLabel.setForeground(isHero
+                ? new Color(100, 180, 255) : new Color(255, 100, 100));
+        if (isHero) heroNameLabel = nameLabel;
+        else        enemyNameLabel = nameLabel;
         panel.add(nameLabel, BorderLayout.NORTH);
 
-        // Portrait placeholder
         JPanel portrait = buildPortrait(isHero);
-        if (isHero) heroPortrait = portrait; else enemyPortrait = portrait;
+        if (isHero) heroPortrait = portrait;
+        else        enemyPortrait = portrait;
         panel.add(portrait, BorderLayout.CENTER);
 
-        // HP bar
         JPanel hpGroup = new JPanel(new BorderLayout(4, 2));
         hpGroup.setBackground(new Color(15, 15, 40));
 
-        JProgressBar hpBar = new JProgressBar(0, isHero ? hero.getMaxHealth() : currentEnemy.getMaxHealth());
-        hpBar.setValue(isHero ? hero.getCurrentHealth() : currentEnemy.getCurrentHealth());
+        JProgressBar hpBar = new JProgressBar(0,
+                isHero ? hero.getMaxHealth() : currentEnemy.getMaxHealth());
+        hpBar.setValue(isHero
+                ? hero.getCurrentHealth() : currentEnemy.getCurrentHealth());
         hpBar.setForeground(isHero ? HERO_HP_COLOR : ENEMY_HP_COLOR);
         hpBar.setBackground(new Color(30, 30, 30));
         hpBar.setStringPainted(false);
@@ -185,18 +217,17 @@ public class BattleScreen extends JFrame {
         JLabel hpTitle = new JLabel("HP", SwingConstants.CENTER);
         hpTitle.setForeground(TEXT_COLOR);
         hpTitle.setFont(MAIN_FONT);
-        hpGroup.add(hpTitle, BorderLayout.NORTH);
+        hpGroup.add(hpTitle,  BorderLayout.NORTH);
         hpGroup.add(hpBar,    BorderLayout.CENTER);
         hpGroup.add(hpLabel,  BorderLayout.SOUTH);
-
         panel.add(hpGroup, BorderLayout.SOUTH);
         return panel;
     }
 
     private JPanel buildPortrait(boolean isHero) {
-        Color baseColor = isHero ? new Color(30, 60, 120) : new Color(80, 20, 20);
-        String imgPath  = isHero ? hero.getImagePath() : currentEnemy.getImagePath();
-        String label    = isHero ? hero.getName()      : currentEnemy.getName();
+        Color  baseColor = isHero ? new Color(30, 60, 120) : new Color(80, 20, 20);
+        String imgPath   = isHero ? hero.getImagePath()    : currentEnemy.getImagePath();
+        String label     = isHero ? hero.getName()         : currentEnemy.getName();
 
         java.awt.image.BufferedImage loaded = null;
         try {
@@ -225,7 +256,9 @@ public class BattleScreen extends JFrame {
                     g2.setColor(new Color(255, 255, 255, 200));
                     g2.setFont(new Font("Impact", Font.PLAIN, 12));
                     FontMetrics fm = g2.getFontMetrics();
-                    g2.drawString(label, (getWidth() - fm.stringWidth(label)) / 2, getHeight() - 10);
+                    g2.drawString(label,
+                            (getWidth() - fm.stringWidth(label)) / 2,
+                            getHeight() - 10);
                 }
             }
         };
@@ -259,91 +292,97 @@ public class BattleScreen extends JFrame {
         return panel;
     }
 
-    // ── Bottom panel: ability info + action buttons ─────────────────────
+    // ── Bottom panel: skill buttons ────────────────────────────────────
     private JPanel buildBottomPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
         panel.setBackground(BG_COLOR);
         panel.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-        // Ability status
-        String abilityName = (hero.getSpecialAbility() != null)
-                ? hero.getSpecialAbility().getName() : "None";
-        abilityStatusLabel = new JLabel("⚡ " + abilityName + " – READY");
-        abilityStatusLabel.setForeground(new Color(100, 220, 255));
-        abilityStatusLabel.setFont(new Font("Arial", Font.ITALIC, 13));
+        // Skill button labels from hero's actual skill names
+        String s1 = hero.getSkill1() != null ? hero.getSkill1().getName() : "Skill 1";
+        String s2 = hero.getSkill2() != null ? hero.getSkill2().getName() : "Skill 2";
+        String s3 = hero.getSkill3() != null ? hero.getSkill3().getName() : "Skill 3";
 
-        // Action buttons
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         btnPanel.setBackground(BG_COLOR);
 
-        attackBtn  = actionButton("⚔ ATTACK",  new Color(180, 30, 30), e -> performAction(BattleManager.PlayerAction.ATTACK));
-        abilityBtn = actionButton("⚡ ABILITY", new Color(30, 100, 180), e -> performAction(BattleManager.PlayerAction.USE_ABILITY));
-        defendBtn  = actionButton("🛡 DEFEND",  new Color(30, 120, 30), e -> performAction(BattleManager.PlayerAction.DEFEND));
+        attackBtn = actionButton("⚔ ATTACK",
+                new Color(180, 30, 30),
+                e -> performAction(BattleManager.PlayerAction.ATTACK));
+        skill1Btn = actionButton("⚡ " + s1,
+                new Color(30, 100, 180),
+                e -> performAction(BattleManager.PlayerAction.SKILL_1));
+        skill2Btn = actionButton("🌀 " + s2,
+                new Color(100, 30, 180),
+                e -> performAction(BattleManager.PlayerAction.SKILL_2));
+        skill3Btn = actionButton("💥 " + s3,
+                new Color(180, 100, 0),
+                e -> performAction(BattleManager.PlayerAction.SKILL_3));
+        defendBtn = actionButton("🛡 DEFEND",
+                new Color(30, 120, 30),
+                e -> performAction(BattleManager.PlayerAction.DEFEND));
 
         btnPanel.add(attackBtn);
-        btnPanel.add(abilityBtn);
+        btnPanel.add(skill1Btn);
+        btnPanel.add(skill2Btn);
+        btnPanel.add(skill3Btn);
         btnPanel.add(defendBtn);
 
-        panel.add(abilityStatusLabel, BorderLayout.WEST);
-        panel.add(btnPanel,           BorderLayout.EAST);
+        panel.add(btnPanel, BorderLayout.CENTER);
         return panel;
     }
 
     private JButton actionButton(String text, Color bg, ActionListener l) {
         JButton btn = new JButton(text);
-        btn.setFont(new Font("Arial", Font.BOLD, 15));
+        btn.setFont(new Font("Arial", Font.BOLD, 13));
         btn.setBackground(bg);
         btn.setForeground(Color.WHITE);
         btn.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(bg.brighter(), 2),
-                new EmptyBorder(10, 20, 10, 20)
-        ));
+                new EmptyBorder(8, 14, 8, 14)));
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.addActionListener(l);
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) { btn.setBackground(bg.brighter()); }
-            public void mouseExited(java.awt.event.MouseEvent e)  { btn.setBackground(bg); }
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                btn.setBackground(bg.brighter()); }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                btn.setBackground(bg); }
         });
         return btn;
     }
 
-    // ─── Battle Logic ──────────────────────────────────────────────────
+    // ─── Battle Logic ─────────────────────────────────────────────────────
 
     private void performAction(BattleManager.PlayerAction action) {
         if (battleManager.isBattleOver()) return;
 
-        // Play sound
         switch (action) {
-            case ATTACK     -> AudioManager.getInstance().playSFX(AudioManager.SFX_ATTACK);
-            case USE_ABILITY-> {
-                if (hero.getSpecialAbility() != null)
-                    AudioManager.getInstance().playSFX(hero.getSpecialAbility().getSoundFile());
-            }
-            case DEFEND     -> AudioManager.getInstance().playSFX(AudioManager.SFX_BUTTON_CLICK);
+            case ATTACK  -> AudioManager.getInstance().playSFX(AudioManager.SFX_ATTACK);
+            case SKILL_1 -> { if (hero.getSkill1() != null)
+                AudioManager.getInstance().playSFX(hero.getSkill1().getSoundFile()); }
+            case SKILL_2 -> { if (hero.getSkill2() != null)
+                AudioManager.getInstance().playSFX(hero.getSkill2().getSoundFile()); }
+            case SKILL_3 -> { if (hero.getSkill3() != null)
+                AudioManager.getInstance().playSFX(hero.getSkill3().getSoundFile()); }
+            case DEFEND  -> AudioManager.getInstance().playSFX(AudioManager.SFX_BUTTON_CLICK);
         }
 
-        // Execute the turn
         BattleResult result = battleManager.executeTurn(action);
         appendLog(result.getFullLog());
         updateUI();
 
-        if (result.isBattleOver()) {
-            handleBattleEnd(result);
-        }
+        if (result.isBattleOver()) handleBattleEnd(result);
     }
 
     private void handleBattleEnd(BattleResult result) {
         setButtonsEnabled(false);
 
         if (result.isPlayerWon()) {
-            // Award score
-            totalScore += currentEnemy.getScoreReward();
-            GameState.getInstance().recordVictory(currentEnemy.getScoreReward());
+            totalScore += 200;
+            GameState.getInstance().recordVictory(200);
             AudioManager.getInstance().playSFX(AudioManager.SFX_VICTORY);
             scoreLabel.setText("Score: " + totalScore);
-
-            // After short delay, ask to fight next enemy
             Timer timer = new Timer(1500, e -> promptNextBattle());
             timer.setRepeats(false);
             timer.start();
@@ -357,29 +396,24 @@ public class BattleScreen extends JFrame {
     }
 
     private void promptNextBattle() {
-        String[] options = {"Fight Next Enemy", "Retreat (Main Menu)"};
-        int choice = JOptionPane.showOptionDialog(this,
-                "Enemy defeated!\nScore: " + totalScore + "\nContinue battling?",
-                "Victory!",
-                JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE,
-                null, options, options[0]);
-
-        if (choice == 0) {
-            Enemy next = selectNextEnemy();
+        if (GameState.getInstance().isArcade()) {
+            currentWave++;
+            if (currentWave >= arcadeWaves.size()) {
+                appendLog("\n🏆 YOU CLEARED ALL 10 WAVES! ARCADE COMPLETE!\n");
+                openGameOver(true);
+                return;
+            }
+            Hero next = arcadeWaves.get(currentWave);
             startNewBattle(next);
             resetUIForNewBattle();
-            appendLog("\n── New Battle: " + next.getName() + " ──\n");
+            appendLog("\n── Wave " + (currentWave + 1) + " / 10 : "
+                    + next.getName() + " ──\n");
+            setButtonsEnabled(true);
+
         } else {
+            // PvE and PvP — single fight, go straight to game over
             openGameOver(true);
         }
-    }
-
-    private Enemy selectNextEnemy() {
-        int wins = GameState.getInstance().getBattlesWon();
-        if (wins >= 3) return Enemy.createThanos();
-        if (wins >= 2) return Enemy.createUltron();
-        if (wins >= 1) return Enemy.createLoki();
-        return Enemy.createHydraAgent();
     }
 
     private void resetUIForNewBattle() {
@@ -391,53 +425,64 @@ public class BattleScreen extends JFrame {
         enemyPortrait.repaint();
     }
 
-    // ─── UI Update ────────────────────────────────────────────────────
+    // ─── UI Update ────────────────────────────────────────────────────────
 
     private void updateUI() {
-        // Hero HP
         heroHPBar.setMaximum(hero.getMaxHealth());
         heroHPBar.setValue(hero.getCurrentHealth());
         heroHPLabel.setText(hero.getCurrentHealth() + " / " + hero.getMaxHealth());
 
-        // Enemy HP
         enemyHPBar.setMaximum(currentEnemy.getMaxHealth());
         enemyHPBar.setValue(currentEnemy.getCurrentHealth());
-        enemyHPLabel.setText(currentEnemy.getCurrentHealth() + " / " + currentEnemy.getMaxHealth());
+        enemyHPLabel.setText(currentEnemy.getCurrentHealth()
+                + " / " + currentEnemy.getMaxHealth());
 
-        // Turn label
-        turnLabel.setText("Turn " + battleManager.getTurnNumber());
+        // Turn / wave label
+        if (GameState.getInstance().isArcade()) {
+            turnLabel.setText("Wave " + (currentWave + 1) + "/10  |  Turn "
+                    + battleManager.getTurnNumber());
+        } else {
+            turnLabel.setText("Turn " + battleManager.getTurnNumber());
+        }
 
-        // Score
         scoreLabel.setText("Score: " + totalScore);
 
-        // Ability status
-        if (hero.getSpecialAbility() != null) {
-            String status = hero.getSpecialAbility().isReady()
-                    ? "READY"
-                    : "Cooldown: " + hero.getSpecialAbility().getCooldownRemaining();
-            abilityStatusLabel.setText("⚡ " + hero.getSpecialAbility().getName() + " – " + status);
-            abilityStatusLabel.setForeground(hero.getSpecialAbility().isReady()
-                    ? new Color(100, 220, 255) : new Color(180, 100, 100));
-            abilityBtn.setEnabled(hero.getSpecialAbility().isReady());
-        }
+        // Update skill button cooldown status
+        updateSkillButton(skill1Btn, hero.getSkill1());
+        updateSkillButton(skill2Btn, hero.getSkill2());
+        updateSkillButton(skill3Btn, hero.getSkill3());
 
         revalidate();
         repaint();
     }
 
+    private void updateSkillButton(JButton btn, abilities.Ability skill) {
+        if (skill == null) { btn.setEnabled(false); return; }
+        if (!skill.isReady()) {
+            btn.setText(btn.getText().split("\\(")[0].trim()
+                    + " (CD:" + skill.getCooldownRemaining() + ")");
+            btn.setEnabled(false);
+        } else if (hero.getCurrentMana() < skill.getManaCost()) {
+            btn.setEnabled(false);
+        } else {
+            btn.setEnabled(true);
+        }
+    }
+
     private void appendLog(String text) {
         battleLogArea.append(text + "\n");
-        // Auto-scroll to bottom
         battleLogArea.setCaretPosition(battleLogArea.getDocument().getLength());
     }
 
     private void setButtonsEnabled(boolean enabled) {
         attackBtn.setEnabled(enabled);
-        abilityBtn.setEnabled(enabled);
+        skill1Btn.setEnabled(enabled);
+        skill2Btn.setEnabled(enabled);
+        skill3Btn.setEnabled(enabled);
         defendBtn.setEnabled(enabled);
     }
 
-    // ─── Navigation ───────────────────────────────────────────────────
+    // ─── Navigation ───────────────────────────────────────────────────────
 
     private void openGameOver(boolean won) {
         SwingUtilities.invokeLater(() -> {
@@ -448,28 +493,4 @@ public class BattleScreen extends JFrame {
             dispose();
         });
     }
-
-    /** Runs AI vs AI by auto-firing turns every 1.2 seconds. */
-    private void runAIvsAI() {
-        Timer autoTimer = new Timer(1200, null);
-        autoTimer.addActionListener(e -> {
-            if (battleManager.isBattleOver()) {
-                autoTimer.stop();
-                return;
-            }
-            // Both sides use AI — player side also picks randomly
-            BattleManager.PlayerAction[] actions = BattleManager.PlayerAction.values();
-            BattleManager.PlayerAction randomAction =
-                    actions[(int)(Math.random() * actions.length)];
-            BattleResult result = battleManager.executeTurn(randomAction);
-            appendLog(result.getFullLog());
-            updateUI();
-            if (result.isBattleOver()) {
-                autoTimer.stop();
-                handleBattleEnd(result);
-            }
-        });
-        autoTimer.start();
-    }
 }
-

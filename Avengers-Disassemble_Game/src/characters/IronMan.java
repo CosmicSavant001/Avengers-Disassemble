@@ -1,23 +1,22 @@
 package characters;
 
-import abilities.RepulsorBlast;
+import abilities.ironman.*;
 
-/**
- * Iron Man – Tony Stark in the Mark L armor.
- * High attack power, moderate defense, iconic Repulsor Blast ability.
- */
 public class IronMan extends Hero {
 
     public IronMan() {
-        super("Iron Man", 120, 22, 8);
-        setSpecialAbility(new RepulsorBlast());
+        super("Iron Man", 2400, 22, 8, 500);
+        setSkill1(new ReactorStrike());
+        setSkill2(new ArmorBoost());
+        setSkill3(new FantasticFusionBarrage());
+        setSpecialAbility(getSkill1());
         setImagePath("assets/images/heroes/ironman.png");
     }
 
     @Override
     public String getDescription() {
-        return "Genius, billionaire, playboy, philanthropist. " +
-               "Tony Stark's cutting-edge armor deals massive energy damage " +
-               "with the iconic Repulsor Blast.";
+        return "Genius billionaire Tony Stark upgrades his armor to survive " +
+                "the Multiversal Clash Arena and stop Ultron's cloning system. " +
+                "His Repulsor tech deals massive energy damage.";
     }
 }
