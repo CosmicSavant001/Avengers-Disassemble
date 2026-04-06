@@ -13,11 +13,9 @@ import java.util.List;
 
 /**
  * CharacterSelect - Hero selection screen for all 3 game modes.
- * Cosmic Marvel colour scheme.
- *
- * PvP    : Player 1 Blue picks first, then Player 2 Red picks
- * PvE    : Player picks, AI randomly picks opponent
- * Arcade : Player picks 1 hero, fights all 10 AI heroes in waves
+ * PvP    : Player 1 picks first, then Player 2
+ * PvE    : Player picks, AI randomly picks
+ * Arcade : Player picks 1 hero, fights all 10 in waves
  */
 public class CharacterSelect extends JFrame {
 
@@ -40,12 +38,14 @@ public class CharacterSelect extends JFrame {
         this.leaderboard = leaderboard;
         setTitle("Avengers Disassemble - Choose Hero");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(980, 660);
+        setSize(1050, 700);
         setLocationRelativeTo(null);
         setResizable(false);
         buildHeroes();
         buildUI();
     }
+
+    // ── Hero Roster ───────────────────────────────────────────────────────
 
     private void buildHeroes() {
         heroes.add(new IronMan());
@@ -56,7 +56,11 @@ public class CharacterSelect extends JFrame {
         heroes.add(new ScarletWitch());
         heroes.add(new DoctorStrange());
         heroes.add(new Cadie());
+        heroes.add(new Loki());
+        heroes.add(new Ultron());
     }
+
+    // ── UI Construction ───────────────────────────────────────────────────
 
     private void buildUI() {
         JPanel root = new JPanel(new BorderLayout(10, 10)) {
@@ -73,6 +77,8 @@ public class CharacterSelect extends JFrame {
         root.add(buildBottomBar(),  BorderLayout.SOUTH);
         add(root);
     }
+
+    // ── Top Banner ────────────────────────────────────────────────────────
 
     private JPanel buildTopBanner() {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
@@ -114,8 +120,10 @@ public class CharacterSelect extends JFrame {
         return panel;
     }
 
+    // ── Cards Panel (2 rows x 5 cols) ─────────────────────────────────────
+
     private JPanel buildCardsPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, heroes.size(), 10, 0));
+        JPanel panel = new JPanel(new GridLayout(2, 5, 10, 10));
         panel.setOpaque(false);
         for (Hero h : heroes) {
             JPanel card = buildCard(h);
@@ -185,14 +193,18 @@ public class CharacterSelect extends JFrame {
                 AudioManager.getInstance().playSFX(AudioManager.SFX_BUTTON_CLICK);
             }
             public void mouseEntered(java.awt.event.MouseEvent e) {
-                if (selected != hero) { card.setBackground(Theme.BG_PRIMARY); card.repaint(); }
+                if (selected != hero) {
+                    card.setBackground(Theme.BG_PRIMARY); card.repaint(); }
             }
             public void mouseExited(java.awt.event.MouseEvent e) {
-                if (selected != hero) { card.setBackground(Theme.BG_CARD); card.repaint(); }
+                if (selected != hero) {
+                    card.setBackground(Theme.BG_CARD); card.repaint(); }
             }
         });
         return card;
     }
+
+    // ── Bottom Bar ────────────────────────────────────────────────────────
 
     private JPanel buildBottomBar() {
         JPanel panel = new JPanel(new BorderLayout(16, 0));
@@ -215,7 +227,8 @@ public class CharacterSelect extends JFrame {
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                         RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isEnabled() ? getBadgeColor() : new Color(40, 40, 60));
+                g2.setColor(isEnabled()
+                        ? getBadgeColor() : new Color(40, 40, 60));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Impact", Font.PLAIN, 20));
@@ -243,30 +256,45 @@ public class CharacterSelect extends JFrame {
         return panel;
     }
 
+    // ── Selection Logic ───────────────────────────────────────────────────
+
     private void selectHero(Hero hero, JPanel clicked) {
         selected = hero;
         Color selColor = (pickingForPlayer == 2) ? Theme.RED_TEAM : Theme.BLUE_TEAM;
+
+        // Reset all cards
         for (JPanel c : heroCards) {
             c.setBackground(Theme.BG_CARD);
             c.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(50, 50, 100), 2),
                     new EmptyBorder(8, 6, 8, 6)));
         }
+
+        // Highlight selected
         clicked.setBackground(new Color(10, 15, 50));
         clicked.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(selColor, 3),
                 new EmptyBorder(8, 6, 8, 6)));
+
+        // Update description and stats
         descLabel.setText("<html>" + hero.getDescription() + "</html>");
-        String ab = hero.getSpecialAbility() != null
-                ? hero.getSpecialAbility().getName() : "None";
+
+        String s1 = hero.getSkill1() != null ? hero.getSkill1().getName() : "—";
+        String s2 = hero.getSkill2() != null ? hero.getSkill2().getName() : "—";
+        String s3 = hero.getSkill3() != null ? hero.getSkill3().getName() : "—";
+
         statsLabel.setText(String.format(
-                "<html><b>HP:</b> %d &nbsp;<b>ATK:</b> %d &nbsp;<b>DEF:</b> %d"
-                + " &nbsp;<b>MP:</b> %d<br/><b>Skill:</b> %s</html>",
+                "<html><b>HP:</b> %d &nbsp;<b>ATK:</b> %d &nbsp;"
+                        + "<b>DEF:</b> %d &nbsp;<b>MP:</b> %d<br/>"
+                        + "<b>S1:</b> %s &nbsp;<b>S2:</b> %s &nbsp;<b>S3:</b> %s</html>",
                 hero.getMaxHealth(), hero.getAttackPower(),
-                hero.getDefensePower(), hero.getMaxMana(), ab));
+                hero.getDefensePower(), hero.getMaxMana(),
+                s1, s2, s3));
+
         confirmBtn.setEnabled(true);
         confirmBtn.repaint();
-        revalidate(); repaint();
+        revalidate();
+        repaint();
     }
 
     private void handleConfirm() {
@@ -291,12 +319,14 @@ public class CharacterSelect extends JFrame {
         pickingForPlayer = 2;
         selected = null;
         confirmBtn.setEnabled(false);
+
         for (JPanel c : heroCards) {
             c.setBackground(Theme.BG_CARD);
             c.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(50, 50, 100), 2),
                     new EmptyBorder(8, 6, 8, 6)));
         }
+
         titleLabel.setText(getTitleText());
         titleLabel.setForeground(Theme.NEBULA_PINK);
         playerBadge.setText(getBadgeText());
@@ -304,13 +334,16 @@ public class CharacterSelect extends JFrame {
         playerBadge.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Theme.RED_TEAM, 2),
                 new EmptyBorder(3, 12, 3, 12)));
-        descLabel.setText("<html><i>Player 2 - click a hero to see their story.</i></html>");
+
+        descLabel.setText("<html><i>Player 2 — click a hero to see their story.</i></html>");
         statsLabel.setText("");
         confirmBtn.repaint();
+
         JOptionPane.showMessageDialog(this,
-                "Player 1 locked in!\n\nPlayer 2 - now choose your hero.",
+                "Player 1 locked in!\n\nPlayer 2 — now choose your hero.",
                 "Player 2's Turn", JOptionPane.INFORMATION_MESSAGE);
-        revalidate(); repaint();
+        revalidate();
+        repaint();
     }
 
     private void openBattle() {
@@ -321,12 +354,14 @@ public class CharacterSelect extends JFrame {
         });
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────
+
     private String getTitleText() {
         GameState gs = GameState.getInstance();
         if (gs.isPvP()) return pickingForPlayer == 1
-                ? "PLAYER 1 - CHOOSE YOUR HERO"
-                : "PLAYER 2 - CHOOSE YOUR HERO";
-        if (gs.isArcade()) return "ARCADE - CHOOSE YOUR HERO";
+                ? "PLAYER 1 — CHOOSE YOUR HERO"
+                : "PLAYER 2 — CHOOSE YOUR HERO";
+        if (gs.isArcade()) return "ARCADE — CHOOSE YOUR HERO";
         return "CHOOSE YOUR HERO";
     }
 
@@ -353,7 +388,8 @@ public class CharacterSelect extends JFrame {
 
     private String getInitials(String name) {
         StringBuilder sb = new StringBuilder();
-        for (String p : name.split(" ")) if (!p.isEmpty()) sb.append(p.charAt(0));
+        for (String p : name.split(" "))
+            if (!p.isEmpty()) sb.append(p.charAt(0));
         return sb.toString().toUpperCase();
     }
 }

@@ -298,7 +298,6 @@ public class BattleScreen extends JFrame {
         panel.setBackground(BG_COLOR);
         panel.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-        // Skill button labels from hero's actual skill names
         String s1 = hero.getSkill1() != null ? hero.getSkill1().getName() : "Skill 1";
         String s2 = hero.getSkill2() != null ? hero.getSkill2().getName() : "Skill 2";
         String s3 = hero.getSkill3() != null ? hero.getSkill3().getName() : "Skill 3";
@@ -306,9 +305,6 @@ public class BattleScreen extends JFrame {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         btnPanel.setBackground(BG_COLOR);
 
-        attackBtn = actionButton("⚔ ATTACK",
-                new Color(180, 30, 30),
-                e -> performAction(BattleManager.PlayerAction.ATTACK));
         skill1Btn = actionButton("⚡ " + s1,
                 new Color(30, 100, 180),
                 e -> performAction(BattleManager.PlayerAction.SKILL_1));
@@ -318,15 +314,10 @@ public class BattleScreen extends JFrame {
         skill3Btn = actionButton("💥 " + s3,
                 new Color(180, 100, 0),
                 e -> performAction(BattleManager.PlayerAction.SKILL_3));
-        defendBtn = actionButton("🛡 DEFEND",
-                new Color(30, 120, 30),
-                e -> performAction(BattleManager.PlayerAction.DEFEND));
 
-        btnPanel.add(attackBtn);
         btnPanel.add(skill1Btn);
         btnPanel.add(skill2Btn);
         btnPanel.add(skill3Btn);
-        btnPanel.add(defendBtn);
 
         panel.add(btnPanel, BorderLayout.CENTER);
         return panel;
@@ -458,15 +449,7 @@ public class BattleScreen extends JFrame {
 
     private void updateSkillButton(JButton btn, abilities.Ability skill) {
         if (skill == null) { btn.setEnabled(false); return; }
-        if (!skill.isReady()) {
-            btn.setText(btn.getText().split("\\(")[0].trim()
-                    + " (CD:" + skill.getCooldownRemaining() + ")");
-            btn.setEnabled(false);
-        } else if (hero.getCurrentMana() < skill.getManaCost()) {
-            btn.setEnabled(false);
-        } else {
-            btn.setEnabled(true);
-        }
+        btn.setEnabled(true);
     }
 
     private void appendLog(String text) {
@@ -475,11 +458,9 @@ public class BattleScreen extends JFrame {
     }
 
     private void setButtonsEnabled(boolean enabled) {
-        attackBtn.setEnabled(enabled);
         skill1Btn.setEnabled(enabled);
         skill2Btn.setEnabled(enabled);
         skill3Btn.setEnabled(enabled);
-        defendBtn.setEnabled(enabled);
     }
 
     // ─── Navigation ───────────────────────────────────────────────────────
